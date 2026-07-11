@@ -181,7 +181,7 @@ var SCHOOL_RANKING = [
   { name: "\u5e7f\u897f\u6c11\u65cf\u9ad8\u4e2d", planKey: "\u6c11\u65cf\u9ad8\u4e2d" },
   { name: "\u5357\u5b81\u5916\u56fd\u8bed\u5b66\u6821", planKey: "\u5357\u5b81\u5916\u56fd\u8bed" },
   { name: "\u5357\u5b81\u5e02\u7b2c\u4e94\u4e2d\u5b66", planKey: "\u4e94\u4e2d" },
-  { name: "\u5e7f\u897f\u5927\u5b66\u9644\u5c5e\u4e2d\u5b66(\u6c11\u529e)", planKey: "\u897f\u5927\u9644\u4e2d" },
+  { name: "\u5e7f\u897f\u5927\u5b66\u9644\u5c5e\u4e2d\u5b66(\u6c11\u529e)", planKey: "\u5e7f\u897f\u5927\u5b66\u9644\u5c5e\u4e2d\u5b66" },
   { name: "\u5e7f\u897f\u5e0c\u671b\u9ad8\u4e2d(\u6c11\u529e)", planKey: "\u5e0c\u671b\u9ad8\u4e2d" },
   { name: "\u82f1\u534e\u5b66\u6821\uff08\u7b2c\u4e00\u6863\uff09(\u6c11\u529e)", planKey: "\u82f1\u534e\u5b66\u6821" },
   { name: "\u5357\u5b81\u5e02\u4e1c\u76df\u4e2d\u5b66(\u6c11\u529e)", planKey: "\u4e1c\u76df\u4e2d\u5b66" }
@@ -295,10 +295,13 @@ function doMatch() {
     // 非南宁市户籍：仅指导性计划人数
     var capacity = 0;
     if (plan) {
+      // 处理 "-" 字符串（民办学校无指令性计划）
+      var zhiling = (typeof plan["\u6307\u4ee4\u6027\u8ba1\u5212\u4eba\u6570"] === "number") ? plan["\u6307\u4ee4\u6027\u8ba1\u5212\u4eba\u6570"] : 0;
+      var zhidao = (typeof plan["\u6307\u5bfc\u6027\u8ba1\u5212\u4eba\u6570"] === "number") ? plan["\u6307\u5bfc\u6027\u8ba1\u5212\u4eba\u6570"] : 0;
       if (isWhk) {
-        capacity = plan["\u6307\u5bfc\u6027\u8ba1\u5212\u4eba\u6570"] || 0;
+        capacity = zhidao;
       } else {
-        capacity = (plan["\u6307\u4ee4\u6027\u8ba1\u5212\u4eba\u6570"] || 0) + (plan["\u6307\u5bfc\u6027\u8ba1\u5212\u4eba\u6570"] || 0);
+        capacity = zhiling + zhidao;
       }
     }
 
