@@ -329,17 +329,17 @@ function doMatch() {
     .filter(function(s) { return typeof s[meta.cutoffRank] === "number"; })
     .sort(function(a, b) { return a[meta.cutoffRank] - b[meta.cutoffRank]; });
   var safeStart = schools.findIndex(function(s) { return s[meta.cutoffRank] >= rankEnd; });
-  // 始终给出 3 所学校：以临界学校为中心，前一所作为冲刺，其余作为参考匹配。
+  // 始终给出 4 所学校：以临界学校为中心，前一所作为冲刺，其余作为参考匹配。
   var recommendations = [];
   var startIndex;
   if (safeStart === -1) {
-    startIndex = Math.max(0, schools.length - 3);
+    startIndex = Math.max(0, schools.length - 4);
   } else if (safeStart === 0) {
     startIndex = 0;
   } else {
-    startIndex = Math.min(safeStart - 1, Math.max(0, schools.length - 3));
+    startIndex = Math.min(safeStart - 1, Math.max(0, schools.length - 4));
   }
-  for (var r = startIndex; r < Math.min(startIndex + 3, schools.length); r++) {
+  for (var r = startIndex; r < Math.min(startIndex + 4, schools.length); r++) {
     recommendations.push({ entry: schools[r], type: safeStart > 0 && r < safeStart ? "try" : "rec" });
   }
 
