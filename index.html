@@ -48,7 +48,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 .type-card .tc-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 .type-card.active .tc-title { color: var(--primary-dark); }
 
-.grade-row { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+.grade-row { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: nowrap; align-items: center; overflow-x: auto; }
 .grade-row .gr-label { font-size: 14px; font-weight: 600; color: var(--text); margin-right: 4px; }
 .grade-pill { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: #fff; color: var(--text); }
 .grade-pill:hover { border-color: var(--primary); background: var(--bg); }
@@ -122,14 +122,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
       </div>
     </div>
 
-    <div class="grade-row">
+    <div class="grade-row" style="margin-bottom:28px;">
       <span class="gr-label">总成绩等级：</span>
       <span id="gradePills"></span>
-    </div>
-
-    <div class="grade-row" style="margin-bottom:28px;">
-      <span class="gr-label" style="min-width:90px;">成绩组合：</span>
-      <select class="form-select" id="scoreCombo" disabled style="flex:1;">
+      <span class="gr-label" style="margin-left:20px;">成绩组合：</span>
+      <select class="form-select" id="scoreCombo" disabled style="flex:1;min-width:200px;">
         <option value="">-- 请先选择等级 --</option>
       </select>
     </div>
