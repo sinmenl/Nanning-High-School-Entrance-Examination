@@ -66,7 +66,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 .result-show { display: block; }
 
 .rank-badge { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.rank-badge .rank-num { font-size: 36px; font-weight: 800; color: var(--primary-dark); letter-spacing: -0.5px; }
+.rank-badge .rank-num { font-size: 36px; font-weight: 800; color: var(--primary-dark); }
 .rank-badge .rank-label { font-size: 15px; color: var(--text-secondary); font-weight: 500; }
 .rank-badge .rank-pct { font-size: 13px; color: var(--text-secondary); }
 
@@ -161,37 +161,47 @@ allGrades.sort(function(a, b) { return gradeOrder.indexOf(a) - gradeOrder.indexO
 var studentType = "";
 var selectedGrade = "";
 
-// 示范性高中固定排名顺序
+// 示范性高中固定排名顺序（含招生计划映射Key）
 var SCHOOL_RANKING = [
-  "\u5357\u5b81\u5e02\u7b2c\u4e09\u4e2d\u5b66(\u9752\u5c71\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u7b2c\u4e8c\u4e2d\u5b66(\u51e4\u5cad\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u7b2c\u4e09\u4e2d\u5b66(\u4e94\u8c61\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u9095\u5b81\u9ad8\u7ea7\u4e2d\u5b66",
-  "\u5357\u5b81\u5e02\u7b2c\u4e09\u5341\u4e09\u4e2d\u5b66",
-  "\u5357\u5b81\u5e02\u7b2c\u516b\u4e2d\u5b66(\u76f8\u601d\u6e56\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u7b2c\u4e09\u5341\u516d\u4e2d\u5b66(\u8861\u9633\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u7b2c\u4e09\u5341\u516d\u4e2d\u5b66(\u6c5f\u5357\u6821\u533a)",
-  "\u5357\u5b81\u6c9b\u9e3f\u6c11\u65cf\u4e2d\u5b66(\u6c5f\u5357\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u7b2c\u5341\u56db\u4e2d\u5b66(\u9ad8\u4e2d\u90e8)",
-  "\u5357\u5b81\u5e02\u7b2c\u4e00\u4e2d\u5b66(\u4e94\u8c61\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u7b2c\u56db\u4e2d\u5b66(\u4e94\u8c61\u51e4\u51f0\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u7b2c\u4e8c\u5341\u516d\u4e2d\u5b66(\u4e94\u8c61\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u7b2c\u5341\u4e2d\u5b66(\u4e0a\u6d25\u6821\u533a)",
-  "\u5357\u5b81\u5e02\u7b2c\u56db\u5341\u4e09\u4e2d\u5b66",
-  "\u5e7f\u897f\u6c11\u65cf\u9ad8\u4e2d",
-  "\u5357\u5b81\u5916\u56fd\u8bed\u5b66\u6821",
-  "\u5357\u5b81\u5e02\u7b2c\u4e94\u4e2d\u5b66",
-  "\u5e7f\u897f\u5927\u5b66\u9644\u5c5e\u4e2d\u5b66(\u6c11\u529e)",
-  "\u5e7f\u897f\u5e0c\u671b\u9ad8\u4e2d(\u6c11\u529e)",
-  "\u82f1\u534e\u5b66\u6821\uff08\u7b2c\u4e00\u6863\uff09(\u6c11\u529e)",
-  "\u5357\u5b81\u5e02\u4e1c\u76df\u4e2d\u5b66(\u6c11\u529e)"
+  { name: "\u5357\u5b81\u5e02\u7b2c\u4e09\u4e2d\u5b66(\u9752\u5c71\u6821\u533a)", planKey: "\u4e09\u4e2d\uff08\u9752\u5c71\u6821\u533a\uff09" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u4e8c\u4e2d\u5b66(\u51e4\u5cad\u6821\u533a)", planKey: "\u4e8c\u4e2d" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u4e09\u4e2d\u5b66(\u4e94\u8c61\u6821\u533a)", planKey: "\u4e09\u4e2d\uff08\u4e94\u8c61\u6821\u533a\uff09" },
+  { name: "\u5357\u5b81\u5e02\u9095\u5b81\u9ad8\u7ea7\u4e2d\u5b66", planKey: "\u9095\u5b81\u9ad8\u4e2d" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u4e09\u5341\u4e09\u4e2d\u5b66", planKey: "\u4e09\u5341\u4e09\u4e2d" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u516b\u4e2d\u5b66(\u76f8\u601d\u6e56\u6821\u533a)", planKey: "\u516b\u4e2d\uff08\u76f8\u601d\u6e56\u6821\u533a\uff09" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u4e09\u5341\u516d\u4e2d\u5b66(\u8861\u9633\u6821\u533a)", planKey: "\u4e09\u5341\u516d\u4e2d\uff08\u8861\u9633\u6821\u533a\uff09" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u4e09\u5341\u516d\u4e2d\u5b66(\u6c5f\u5357\u6821\u533a)", planKey: "\u4e09\u5341\u516d\u4e2d\uff08\u6c5f\u5357\u6821\u533a\uff09" },
+  { name: "\u5357\u5b81\u6c9b\u9e3f\u6c11\u65cf\u4e2d\u5b66(\u6c5f\u5357\u6821\u533a)", planKey: "\u6c9b\u9e3f" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u5341\u56db\u4e2d\u5b66(\u9ad8\u4e2d\u90e8)", planKey: "\u5341\u56db\u4e2d\u9ad8\u4e2d\u90e8" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u4e00\u4e2d\u5b66(\u4e94\u8c61\u6821\u533a)", planKey: "\u4e00\u4e2d\uff08\u4e94\u8c61\u6821\u533a\uff09" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u56db\u4e2d\u5b66(\u4e94\u8c61\u51e4\u51f0\u6821\u533a)", planKey: "\u56db\u4e2d\uff08\u4e94\u8c61\u51e4\u51f0\u6821\u533a\uff09" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u4e8c\u5341\u516d\u4e2d\u5b66(\u4e94\u8c61\u6821\u533a)", planKey: "\u4e8c\u5341\u516d\u4e2d" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u5341\u4e2d\u5b66(\u4e0a\u6d25\u6821\u533a)", planKey: "\u5341\u4e2d\uff08\u4e0a\u6d25\u6821\u533a\uff09" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u56db\u5341\u4e09\u4e2d\u5b66", planKey: "\u56db\u5341\u4e09\u4e2d" },
+  { name: "\u5e7f\u897f\u6c11\u65cf\u9ad8\u4e2d", planKey: "\u6c11\u65cf\u9ad8\u4e2d" },
+  { name: "\u5357\u5b81\u5916\u56fd\u8bed\u5b66\u6821", planKey: "\u5357\u5b81\u5916\u56fd\u8bed" },
+  { name: "\u5357\u5b81\u5e02\u7b2c\u4e94\u4e2d\u5b66", planKey: "\u4e94\u4e2d" },
+  { name: "\u5e7f\u897f\u5927\u5b66\u9644\u5c5e\u4e2d\u5b66(\u6c11\u529e)", planKey: "\u897f\u5927\u9644\u4e2d" },
+  { name: "\u5e7f\u897f\u5e0c\u671b\u9ad8\u4e2d(\u6c11\u529e)", planKey: "\u5e0c\u671b\u9ad8\u4e2d" },
+  { name: "\u82f1\u534e\u5b66\u6821\uff08\u7b2c\u4e00\u6863\uff09(\u6c11\u529e)", planKey: "\u82f1\u534e\u5b66\u6821" },
+  { name: "\u5357\u5b81\u5e02\u4e1c\u76df\u4e2d\u5b66(\u6c11\u529e)", planKey: "\u4e1c\u76df\u4e2d\u5b66" }
 ];
 
-function getSchoolRank(schoolName) {
+function getSchoolIndex(schoolName) {
   for (var i = 0; i < SCHOOL_RANKING.length; i++) {
-    if (schoolName === SCHOOL_RANKING[i]) return i;
+    if (schoolName === SCHOOL_RANKING[i].name) return i;
   }
   return 999;
+}
+
+function findPlanByKey(planKey) {
+  for (var i = 0; i < PLAN_DATA.length; i++) {
+    var p = PLAN_DATA[i];
+    if (p["\u5b66\u6821"] && p["\u5b66\u6821"].indexOf(planKey) !== -1) {
+      return p;
+    }
+  }
+  return null;
 }
 
 function selectStudentType(val, el) {
@@ -241,56 +251,6 @@ document.getElementById("scoreCombo").addEventListener("change", function() {
   document.getElementById("matchBtn").disabled = !this.value;
 });
 
-function findPlan2026(schoolName) {
-  var shortMap = {
-    "\u5357\u5b81\u5e02\u7b2c\u4e09\u4e2d\u5b66(\u9752\u5c71\u6821\u533a)": "\u4e09\u4e2d\uff08\u9752\u5c71",
-    "\u5357\u5b81\u5e02\u7b2c\u4e8c\u4e2d\u5b66(\u51e4\u5cad\u6821\u533a)": "\u4e8c\u4e2d",
-    "\u5357\u5b81\u5e02\u7b2c\u4e09\u4e2d\u5b66(\u4e94\u8c61\u6821\u533a)": "\u4e09\u4e2d\uff08\u4e94\u8c61",
-    "\u5357\u5b81\u5e02\u9095\u5b81\u9ad8\u7ea7\u4e2d\u5b66": "\u9095\u5b81\u9ad8\u4e2d",
-    "\u5357\u5b81\u5e02\u7b2c\u4e09\u5341\u4e09\u4e2d\u5b66": "\u4e09\u5341\u4e09\u4e2d",
-    "\u5357\u5b81\u5e02\u7b2c\u516b\u4e2d\u5b66(\u76f8\u601d\u6e56\u6821\u533a)": "\u516b\u4e2d\uff08\u76f8\u601d",
-    "\u5357\u5b81\u5e02\u7b2c\u4e09\u5341\u516d\u4e2d\u5b66(\u8861\u9633\u6821\u533a)": "\u4e09\u5341\u516d\u4e2d\uff08\u8861\u9633",
-    "\u5357\u5b81\u5e02\u7b2c\u4e09\u5341\u516d\u4e2d\u5b66(\u6c5f\u5357\u6821\u533a)": "\u4e09\u5341\u516d\u4e2d\uff08\u6c5f\u5357",
-    "\u5357\u5b81\u6c9b\u9e3f\u6c11\u65cf\u4e2d\u5b66(\u6c5f\u5357\u6821\u533a)": "\u6c9b\u9e3f",
-    "\u5357\u5b81\u5e02\u7b2c\u5341\u56db\u4e2d\u5b66(\u9ad8\u4e2d\u90e8)": "\u5341\u56db\u4e2d\u9ad8\u4e2d\u90e8",
-    "\u5357\u5b81\u5e02\u7b2c\u4e00\u4e2d\u5b66(\u4e94\u8c61\u6821\u533a)": "\u4e00\u4e2d\uff08\u4e94\u8c61",
-    "\u5357\u5b81\u5e02\u7b2c\u56db\u4e2d\u5b66(\u4e94\u8c61\u51e4\u51f0\u6821\u533a)": "\u56db\u4e2d\uff08\u4e94\u8c61\u51e4\u51f0",
-    "\u5357\u5b81\u5e02\u7b2c\u4e8c\u5341\u516d\u4e2d\u5b66(\u4e94\u8c61\u6821\u533a)": "\u4e8c\u5341\u516d\u4e2d",
-    "\u5357\u5b81\u5e02\u7b2c\u5341\u4e2d\u5b66(\u4e0a\u6d25\u6821\u533a)": "\u5341\u4e2d\uff08\u4e0a\u6d25",
-    "\u5357\u5b81\u5e02\u7b2c\u56db\u5341\u4e09\u4e2d\u5b66": "\u56db\u5341\u4e09\u4e2d",
-    "\u5e7f\u897f\u6c11\u65cf\u9ad8\u4e2d": "\u6c11\u65cf\u9ad8\u4e2d",
-    "\u5357\u5b81\u5916\u56fd\u8bed\u5b66\u6821": "\u5357\u5b81\u5916\u56fd\u8bed",
-    "\u5357\u5b81\u5e02\u7b2c\u4e94\u4e2d\u5b66": "\u4e94\u4e2d",
-    "\u5e7f\u897f\u5927\u5b66\u9644\u5c5e\u4e2d\u5b66(\u6c11\u529e)": "\u897f\u5927\u9644\u4e2d",
-    "\u5e7f\u897f\u5e0c\u671b\u9ad8\u4e2d(\u6c11\u529e)": "\u5e0c\u671b\u9ad8\u4e2d",
-    "\u82f1\u534e\u5b66\u6821\uff08\u7b2c\u4e00\u6863\uff09(\u6c11\u529e)": "\u82f1\u534e\u5b66\u6821",
-    "\u5357\u5b81\u5e02\u4e1c\u76df\u4e2d\u5b66(\u6c11\u529e)": "\u4e1c\u76df\u4e2d\u5b66"
-  };
-  var key = shortMap[schoolName];
-  if (!key) return null;
-  for (var i = 0; i < PLAN_DATA.length; i++) {
-    var p = PLAN_DATA[i];
-    if (p["\u5b66\u6821"] && p["\u5b66\u6821"].indexOf(key) !== -1) {
-      return p;
-    }
-  }
-  return null;
-}
-
-function findLastYearSchool(rank, isWhk) {
-  var bestSchool = null;
-  var bestRank = 99999;
-  CUTOFF_DATA.forEach(function(s) {
-    var cutoffRank = isWhk ? (s["\u6307\u5bfc\u6700\u4f4e\u6392\u540d"] || 99999) : s["\u975e\u5b9a\u5411\u6700\u4f4e\u6392\u540d"];
-    if (!cutoffRank) return;
-    if (cutoffRank >= rank && cutoffRank < bestRank) {
-      bestRank = cutoffRank;
-      bestSchool = s;
-    }
-  });
-  return bestSchool;
-}
-
 function doMatch() {
   var combo = document.getElementById("scoreCombo").value;
   if (!studentType || !selectedGrade || !combo) return;
@@ -314,55 +274,86 @@ function doMatch() {
   if (isWhk) {
     html += '<div class="rule-note"><strong>\u6ce8\u610f\uff1a</strong>\u975e\u5357\u5b81\u5e02\u6237\u7c4d\u8003\u751f\u53ea\u80fd\u53c2\u4e0e<strong>\u6307\u5bfc\u6027\u8ba1\u5212</strong>\u5f55\u53d6\uff0c\u4e0d\u80fd\u4f7f\u7528\u6307\u4ee4\u6027\u8ba1\u5212\u3002\u4ee5\u4e0b\u57fa\u4e8e\u6307\u5bfc\u6027\u5f55\u53d6\u540d\u6b21\u5339\u914d\u3002</div>';
   } else {
-    html += '<div class="rule-note"><strong>\u5357\u5b81\u5e02\u6237\u7c4d\u8003\u751f\uff1a</strong>\u53ef\u53c2\u4e0e<strong>\u6307\u4ee4\u6027\u8ba1\u5212</strong>\uff08\u975e\u5b9a\u5411\u2192\u5b9a\u5411\u2192\u5b9a\u5411\u7a7a\u4f59\uff09\u548c<strong>\u6307\u5bfc\u6027\u8ba1\u5212</strong>\u3002\u4ee5\u4e0b\u57fa\u4e8e\u6307\u4ee4\u6027\u975e\u5b9a\u5411\u5f55\u53d6\u540d\u6b21\u5339\u914d\u3002</div>';
+    html += '<div class="rule-note"><strong>\u5357\u5b81\u5e02\u6237\u7c4d\u8003\u751f\uff1a</strong>\u53ef\u53c2\u4e0e<strong>\u6307\u4ee4\u6027\u8ba1\u5212</strong>\uff08\u975e\u5b9a\u5411\u2192\u5b9a\u5411\u2192\u5b9a\u5411\u7a7a\u4f59\uff09\u548c<strong>\u6307\u5bfc\u6027\u8ba1\u5212</strong>\u3002\u4ee5\u4e0b\u6309\u7d2f\u8ba1\u62db\u751f\u540d\u989d\u4f9d\u6b21\u63a8\u8350\u3002</div>';
   }
 
-  // 按固定排名顺序排列学校
-  var schools = CUTOFF_DATA.slice().filter(function(s) {
-    return getSchoolRank(s["\u5b66\u6821"]) < 999;
-  }).sort(function(a, b) {
-    return getSchoolRank(a["\u5b66\u6821"]) - getSchoolRank(b["\u5b66\u6821"]);
-  });
+  // 构建学校列表（按固定排名），计算累计名额
+  var schoolList = [];
+  var cumulative = 0;
 
-  var trySchools = [];
-  var recSchools = [];
-
-  schools.forEach(function(s) {
-    var matchRank = isWhk ? s["\u6307\u5bfc\u6700\u4f4e\u6392\u540d"] : s["\u975e\u5b9a\u5411\u6700\u4f4e\u6392\u540d"];
-    if (!matchRank) return;
-
-    var plan = findPlan2026(s["\u5b66\u6821"]);
-    var entry = {
-      school: s["\u5b66\u6821"],
-      zhilingRank: s["\u975e\u5b9a\u5411\u6700\u4f4e\u6392\u540d"],
-      dingxiangRank: s["\u5b9a\u5411\u6700\u4f4e\u6392\u540d"],
-      zhidaoRank: s["\u6307\u5bfc\u6700\u4f4e\u6392\u540d"],
-      plan2026: plan,
-      matchRank: matchRank,
-      ranking: getSchoolRank(s["\u5b66\u6821"])
-    };
-
-    if (matchRank < rank) {
-      trySchools.push(entry);
-    } else {
-      recSchools.push(entry);
+  SCHOOL_RANKING.forEach(function(sr) {
+    var plan = findPlanByKey(sr.planKey);
+    var cutoff = null;
+    for (var i = 0; i < CUTOFF_DATA.length; i++) {
+      if (CUTOFF_DATA[i]["\u5b66\u6821"] === sr.name) {
+        cutoff = CUTOFF_DATA[i];
+        break;
+      }
     }
+
+    // 南宁市户籍：指令性计划人数 + 指导性计划人数
+    // 非南宁市户籍：仅指导性计划人数
+    var capacity = 0;
+    if (plan) {
+      if (isWhk) {
+        capacity = plan["\u6307\u5bfc\u6027\u8ba1\u5212\u4eba\u6570"] || 0;
+      } else {
+        capacity = (plan["\u6307\u4ee4\u6027\u8ba1\u5212\u4eba\u6570"] || 0) + (plan["\u6307\u5bfc\u6027\u8ba1\u5212\u4eba\u6570"] || 0);
+      }
+    }
+
+    cumulative += capacity;
+
+    schoolList.push({
+      name: sr.name,
+      capacity: capacity,
+      cumulative: cumulative,
+      zhilingRank: cutoff ? cutoff["\u975e\u5b9a\u5411\u6700\u4f4e\u6392\u540d"] : null,
+      zhidaoRank: cutoff ? cutoff["\u6307\u5bfc\u6700\u4f4e\u6392\u540d"] : null,
+      plan: plan
+    });
   });
 
-  // 试一试：取排名最靠后的1个（即固定排名中最好的那所"试一试"学校）
-  trySchools.sort(function(a, b) { return b.ranking - a.ranking; });
-  // 推荐：取排名最靠前的3个
-  recSchools.sort(function(a, b) { return a.ranking - b.ranking; });
+  // 找到考生排名对应的位置
+  // 第一所累计名额 >= 考生排名的学校 = 稳进起点
+  var safeStartIdx = -1;
+  for (var i = 0; i < schoolList.length; i++) {
+    if (schoolList[i].cumulative >= rank) {
+      safeStartIdx = i;
+      break;
+    }
+  }
 
+  // 构建推荐列表（3所）
   var recommendations = [];
-  if (trySchools.length > 0) {
-    recommendations.push({ entry: trySchools[0], type: "try" });
-  }
-  for (var i = 0; i < Math.min(3, recSchools.length); i++) {
-    recommendations.push({ entry: recSchools[i], type: "rec" });
+
+  if (safeStartIdx === -1) {
+    // 考生排名在最后一所学校之后，取最后3所
+    var start = Math.max(0, schoolList.length - 3);
+    for (var i = start; i < schoolList.length; i++) {
+      recommendations.push({ entry: schoolList[i], type: "rec" });
+    }
+  } else if (safeStartIdx === 0) {
+    // 考生排名在第1所学校之内，前3所都是推荐
+    for (var i = 0; i < Math.min(3, schoolList.length); i++) {
+      recommendations.push({ entry: schoolList[i], type: "rec" });
+    }
+  } else {
+    // 正常情况：前一所是"定向生尝试/试一试"，当前及后一所是"推荐"
+    recommendations.push({ entry: schoolList[safeStartIdx - 1], type: "try" });
+    recommendations.push({ entry: schoolList[safeStartIdx], type: "rec" });
+    if (safeStartIdx + 1 < schoolList.length) {
+      recommendations.push({ entry: schoolList[safeStartIdx + 1], type: "rec" });
+    } else {
+      // 没有后一所，往前取
+      if (safeStartIdx - 2 >= 0 && recommendations.length < 3) {
+        recommendations.unshift({ entry: schoolList[safeStartIdx - 2], type: "rec" });
+      }
+    }
   }
 
-  var lastYearSchool = findLastYearSchool(rank, isWhk);
+  // 确保只有3所
+  recommendations = recommendations.slice(0, 3);
 
   if (recommendations.length === 0) {
     html += '<div class="empty-state">\u6682\u65e0\u5339\u914d\u5b66\u6821\uff0c\u8bf7\u786e\u8ba4\u6210\u7ee9\u7ec4\u5408</div>';
@@ -373,25 +364,42 @@ function doMatch() {
       var isTry = rec.type === "try";
       var cardClass = isTry ? "try-card" : "rec-card";
       var tagClass = isTry ? "try-tag" : "rec-tag";
-      var tagText = isTry ? "\u8bd5\u4e00\u8bd5" : "\u63a8\u8350";
+      // 南宁市户籍：定向生尝试；非南宁市户籍：试一试
+      var tagText = isTry ? (isWhk ? "\u8bd5\u4e00\u8bd5" : "\u5b9a\u5411\u751f\u5c1d\u8bd5") : "\u63a8\u8350";
 
       html += '<div class="school-card ' + cardClass + '">';
       html += '<div class="sc-header">';
-      html += '<span class="sc-name">' + (idx + 1) + '. ' + e.school + '</span>';
+      html += '<span class="sc-name">' + (idx + 1) + '. ' + e.name + '</span>';
       html += '<span class="sc-tag ' + tagClass + '">' + tagText + '</span>';
       html += '</div>';
 
       html += '<div class="sc-body">';
       html += '<div class="sc-item">\u6307\u4ee4\u5f55\u53d6\u6700\u4f4e\u540d\u6b21\uff1a<strong>\u7b2c ' + (e.zhilingRank ? e.zhilingRank.toLocaleString() : '--') + ' \u540d</strong></div>';
       html += '<div class="sc-item">\u6307\u5bfc\u5f55\u53d6\u6700\u4f4e\u540d\u6b21\uff1a<strong>\u7b2c ' + (e.zhidaoRank ? e.zhidaoRank.toLocaleString() : '--') + ' \u540d</strong></div>';
-      if (e.plan2026) {
-        html += '<div class="sc-item">2026\u62db\u751f\u8ba1\u5212\uff1a<strong>' + e.plan2026["\u8ba1\u5212\u603b\u4eba\u6570"] + ' \u4eba</strong>\uff08\u6307\u4ee4\u6027 ' + e.plan2026["\u6307\u4ee4\u6027\u8ba1\u5212\u4eba\u6570"] + ' + \u6307\u5bfc\u6027 ' + e.plan2026["\u6307\u5bfc\u6027\u8ba1\u5212\u4eba\u6570"] + '\uff09</div>';
+      if (e.plan) {
+        html += '<div class="sc-item">2026\u62db\u751f\u8ba1\u5212\uff1a<strong>' + e.plan["\u8ba1\u5212\u603b\u4eba\u6570"] + ' \u4eba</strong></div>';
+        if (isWhk) {
+          html += '<div class="sc-item">\u6307\u5bfc\u6027\u540d\u989d\uff1a<strong>' + e.plan["\u6307\u5bfc\u6027\u8ba1\u5212\u4eba\u6570"] + ' \u4eba</strong></div>';
+        } else {
+          html += '<div class="sc-item">\u7d2f\u8ba1\u5f55\u53d6\u540d\u989d\uff1a<strong>' + e.cumulative.toLocaleString() + ' \u4eba</strong></div>';
+        }
       }
       html += '</div>';
 
       html += '</div>';
     });
     html += '</div>';
+
+    // 上年同位次参考
+    var lastYearSchool = null;
+    var bestRank = 99999;
+    CUTOFF_DATA.forEach(function(s) {
+      var cr = isWhk ? (s["\u6307\u5bfc\u6700\u4f4e\u6392\u540d"] || 99999) : s["\u975e\u5b9a\u5411\u6700\u4f4e\u6392\u540d"];
+      if (cr && cr >= rank && cr < bestRank) {
+        bestRank = cr;
+        lastYearSchool = s;
+      }
+    });
 
     if (lastYearSchool) {
       var refRank = isWhk ? lastYearSchool["\u6307\u5bfc\u6700\u4f4e\u6392\u540d"] : lastYearSchool["\u975e\u5b9a\u5411\u6700\u4f4e\u6392\u540d"];
