@@ -320,8 +320,12 @@ function doMatch() {
   var rankStart = rankEnd - match["人数"] + 1;
   var pct = (match["累计占比"] * 100).toFixed(2);
 
-  // 2026 招生计划的全市理论容量，均已扣除特长生。
-  // 定向生还受所在初中获分配名额及校内排序影响，因此只作容量参考。
+  // ===== 约束条件常量 =====
+  var MIN_RANK_2025 = 33492;   // 2025年公办普高最低录取排名
+  var NEW_SEATS_2026 = 1980;   // 2026年新增学位合计
+  var MAX_RANK_2026 = MIN_RANK_2025 + NEW_SEATS_2026; // 35472
+
+  // 2026 招生计划的全市理论容量
   var CAPACITY = {
     "nn-targeted": [
       { label: "二三中（含三中五象）", slots: 3949, cumulative: 3949 },
@@ -355,7 +359,16 @@ function doMatch() {
   html += '<span class="rank-pct">（位于全市前 ' + pct + '%）</span>';
   html += '</div>';
 
-  html += '<div class="rule-note"><strong>可用计划：' + meta.name + '。</strong>' + meta.note + ' 下方“理论容量”是按2026招生计划加总后的参考，不等同于任何一所学校保证录取。</div>';
+  // ===== 状态提示 =====
+  var statusIcon, statusText, statusColor;
+  if (rankEnd <= MIN_RANK_2025) {
+    statusIcon = "✅"; statusText = "你的排名在2025年公办普高录取线内"; statusColor = "#5A8A6A";
+  } else if (rankEnd <= MAX_RANK_2026) {
+    statusIcon = "⚠️"; statusText = "你的排名处于2026年扩招预估范围内"; statusColor = "#B87530";
+  } else {
+    statusIcon = "❌"; statusText = "你的排名超出2026年全市普高预估录取范围"; statusColor = "#C0392B";
+  }
+  html += '<div class="rule-note" style="border-left-color:' + statusColor + ';background:' + (rankEnd <= MAX_RANK_2026 ? 'var(--rec-bg)' : '#FFF0F0') + ';"><strong>' + statusIcon + ' ' + statusText + '</strong></div>';
 
   html += '<div class="capacity-panel"><div class="capacity-title">2026理论容量参考</div><div class="capacity-grid">';
   levels.forEach(function(item) {
@@ -370,42 +383,67 @@ function doMatch() {
   }
   html += '</div>';
 
-  var schools = CUTOFF_DATA
-    .filter(function(s) { return typeof s[meta.cutoffRank] === "number"; })
-    .sort(function(a, b) { return a[meta.cutoffRank] - b[meta.cutoffRank]; });
-  // 录取线排名：数字越小越好。safeStart = 第一个录取线 >= 学生排名的学校（即学生够得着的学校）
-  var safeStart = schools.findIndex(function(s) { return s[meta.cutoffRank] >= rankEnd; });
-  var recommendations = [];
+  // ===== 核心约束逻辑 =====
+  if (rankEnd > MAX_RANK_2026) {
+    // 约束1：超出2026预估最末排名 → 暂无推荐高中
+    html += '<div class="empty-state" style="color:#C0392B;font-weight:600;font-size:16px;">暂无推荐高中</div>';
+    html += '<div class="rule-note" style="margin-top:12px;background:#FFF0F0;border-left-color:#C0392B;">您的排名（第' + rankEnd.toLocaleString() + '名）低于2025年南宁市公办普通高中最低录取线（第' + MIN_RANK_2025.toLocaleString() + '名），且超出2026年扩招预估范围（第' + MAX_RANK_2026.toLocaleString() + '名），无法匹配到推荐高中。建议关注民办高中或中职学校。</div>';
+  } else if (rankEnd > MIN_RANK_2025) {
+    // 约束2：在扩招机会区 → 推荐新增/扩招学校
+    html += '<h3 class="recommend-heading">扩招机会校</h3>';
+    html += '<div class="capacity-summary" style="margin-bottom:16px;">您的排名超出2025年公办普高录取线，但2026年部分高中扩招/新增，以下学校可作为重点考虑：</div>';
+    html += '<div class="result-list">';
 
-  if (safeStart === -1) {
-    // 学生的排名比所有学校的录取线都差，没有任何学校可以推荐
-    html += '<div class="empty-state">暂无推荐高中</div>';
-  } else {
-    // 推荐 logic：safeStart 是第一个稳进的学校
-    var startIndex = Math.max(0, safeStart - 1);
-    var endIndex = Math.min(startIndex + 3, schools.length);
-    for (var r = startIndex; r < endIndex; r++) {
-      recommendations.push({ entry: schools[r], type: r < safeStart ? "try" : "rec" });
-    }
-
-    html += '<h3 class="recommend-heading">参考2025实际录取线的学校建议</h3><div class="result-list">';
-    recommendations.forEach(function(rec, index) {
-      var e = rec.entry;
-      var isTry = rec.type === "try";
-      var cardClass = isTry ? "try-card" : "rec-card";
-      var tagClass = isTry ? "try-tag" : "rec-tag";
-      var tagText = isTry ? "冲刺" : "参考匹配";
-      var cutoffRank = e[meta.cutoffRank];
-      var cutoffScore = e[meta.cutoffScore] || "--";
-      html += '<div class="school-card ' + cardClass + '">';
-      html += '<div class="sc-header"><span class="sc-name">' + (index + 1) + '. ' + e["学校"] + '</span><span class="sc-tag ' + tagClass + '">' + tagText + '</span></div>';
-      html += '<div class="sc-body">';
-      html += '<div class="sc-item">2025' + meta.name + '最低成绩：<strong>' + cutoffScore + '</strong></div>';
-      html += '<div class="sc-item">2025' + meta.name + '最低排名：<strong>第 ' + cutoffRank.toLocaleString() + ' 名</strong></div>';
-      if (typeof e["特控率"] === "number") html += '<div class="sc-item">2025特控率：<strong>' + (e["特控率"] * 100).toFixed(1) + '%</strong></div>';
-      html += '</div></div>';
+    var expansionSchools = [
+      { name: "琼林学校", note: "扩招600人，机会较大", tag: "扩招机会", plus: "+600人" },
+      { name: "银海三雅学校", note: "扩招500人", tag: "扩招机会", plus: "+500人" },
+      { name: "南洋高级中学", note: "2026年首次招生（600人）", tag: "新增学校", plus: "2026新增" },
+      { name: "博鸿高级中学", note: "2026年首次招生（300人）", tag: "新增学校", plus: "2026新增" }
+    ];
+    expansionSchools.forEach(function(s, i) {
+      var isNew = s.tag === "新增学校";
+      html += '<div class="school-card ' + (isNew ? 'try-card' : 'rec-card') + '">';
+      html += '<div class="sc-header"><span class="sc-name">' + (i + 1) + '. ' + s.name + '</span><span class="sc-tag ' + (isNew ? 'try-tag' : 'rec-tag') + '">' + s.tag + '</span></div>';
+      html += '<div class="sc-body"><div class="sc-item">' + s.note + '</div><div class="sc-item">招生增量：<strong>' + s.plus + '</strong></div></div>';
+      html += '</div>';
     });
     html += '</div>';
+  } else {
+    // 正常推荐：排名在2025年公办普高录取线内
+    var schools = CUTOFF_DATA
+      .filter(function(s) { return typeof s[meta.cutoffRank] === "number"; })
+      .sort(function(a, b) { return a[meta.cutoffRank] - b[meta.cutoffRank]; });
+    var safeStart = schools.findIndex(function(s) { return s[meta.cutoffRank] >= rankEnd; });
+    var recommendations = [];
+
+    if (safeStart === -1) {
+      html += '<div class="empty-state">暂无推荐高中</div>';
+    } else {
+      var startIndex = Math.max(0, safeStart - 1);
+      var endIndex = Math.min(startIndex + 3, schools.length);
+      for (var r = startIndex; r < endIndex; r++) {
+        recommendations.push({ entry: schools[r], type: r < safeStart ? "try" : "rec" });
+      }
+
+      html += '<h3 class="recommend-heading">参考2025实际录取线的学校建议</h3><div class="result-list">';
+      recommendations.forEach(function(rec, index) {
+        var e = rec.entry;
+        var isTry = rec.type === "try";
+        var cardClass = isTry ? "try-card" : "rec-card";
+        var tagClass = isTry ? "try-tag" : "rec-tag";
+        var tagText = isTry ? "冲刺" : "参考匹配";
+        var cutoffRank = e[meta.cutoffRank];
+        var cutoffScore = e[meta.cutoffScore] || "--";
+        html += '<div class="school-card ' + cardClass + '">';
+        html += '<div class="sc-header"><span class="sc-name">' + (index + 1) + '. ' + e["学校"] + '</span><span class="sc-tag ' + tagClass + '">' + tagText + '</span></div>';
+        html += '<div class="sc-body">';
+        html += '<div class="sc-item">2025' + meta.name + '最低成绩：<strong>' + cutoffScore + '</strong></div>';
+        html += '<div class="sc-item">2025' + meta.name + '最低排名：<strong>第 ' + cutoffRank.toLocaleString() + ' 名</strong></div>';
+        if (typeof e["特控率"] === "number") html += '<div class="sc-item">2025特控率：<strong>' + (e["特控率"] * 100).toFixed(1) + '%</strong></div>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+    }
   }
   html += '<div style="margin-top:20px; padding:14px 18px; background:#f8f8f6; border-radius:10px; font-size:13px; color:var(--text-secondary);">说明：2026理论容量用于判断可覆盖的高中层级，2025实际最低排名用于判断学校难度。两者都只作择校参考，正式录取以当年招生计划、报名热度和系统排序为准。</div>';
   html += '<button class="consult-btn consult-btn-sm" onclick="openConsult()" style="margin-top:16px;">1对1升学咨询</button>';
