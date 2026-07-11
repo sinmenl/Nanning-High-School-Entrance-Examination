@@ -401,8 +401,10 @@ function doMatch() {
 
     // 上年同位次参考
     if (lastYearSchool) {
+      var refRank = isWhk ? lastYearSchool["\u6307\u5bfc\u6700\u4f4e\u6392\u540d"] : lastYearSchool["\u975e\u5b9a\u5411\u6700\u4f4e\u6392\u540d"];
+      var refLabel = isWhk ? "\u6307\u5bfc\u6027\u5f55\u53d6\u7ebf" : "\u975e\u5b9a\u5411\u5f55\u53d6\u7ebf";
       html += '<div style="margin-top:20px; padding:14px 18px; background:#f8f8f6; border-radius:10px; font-size:13px; color:var(--text-secondary);">';
-      html += '\u53c2\u8003\uff1a2025\u5e74\u540c\u4f4d\u6b21\u8003\u751f\u53ef\u5f55\u53d6\u5230 <strong style="color:var(--text);">' + lastYearSchool["\u5b66\u6821"] + '</strong>\uff08\u975e\u5b9a\u5411\u5f55\u53d6\u7ebf\u7b2c ' + lastYearSchool["\u975e\u5b9a\u5411\u6700\u4f4e\u6392\u540d"].toLocaleString() + ' \u540d\uff09';
+      html += '\u53c2\u8003\uff1a2025\u5e74\u540c\u4f4d\u6b21\u8003\u751f\u53ef\u5f55\u53d6\u5230 <strong style="color:var(--text);">' + lastYearSchool["\u5b66\u6821"] + '</strong>\uff08' + refLabel + '\u7b2c ' + (refRank ? refRank.toLocaleString() : '--') + ' \u540d\uff09';
       html += '</div>';
     }
   }
