@@ -276,14 +276,15 @@ function findPlan2026(schoolName) {
 }
 
 // 查找上年同位次录取学校
+// 录取名次=最后一名被录取学生的排名。考生排名数字≤录取名次才能被录取（排名数字越小越好）
 function findLastYearSchool(rank, isWhk) {
   var bestSchool = null;
-  var bestRank = 0;
+  var bestRank = 99999; // 找录取名次最接近考生名次的（最小的录取名次 ≥ 考生名次）
   CUTOFF_DATA.forEach(function(s) {
     var cutoffRank = isWhk ? (s["\u6307\u5bfc\u6700\u4f4e\u6392\u540d"] || 99999) : s["\u975e\u5b9a\u5411\u6700\u4f4e\u6392\u540d"];
     if (!cutoffRank) return;
-    // 考生名次在录取线之下（名次数字更大），说明能被录取
-    if (cutoffRank <= rank && cutoffRank > bestRank) {
+    // 录取名次 >= 考生名次，说明考生能被录取
+    if (cutoffRank >= rank && cutoffRank < bestRank) {
       bestRank = cutoffRank;
       bestSchool = s;
     }
