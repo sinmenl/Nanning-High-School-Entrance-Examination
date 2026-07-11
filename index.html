@@ -140,7 +140,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 
     <div class="grade-row" style="margin-bottom:28px;">
       <span class="gr-label">总成绩等级：</span>
-      <span id="gradePills"></span>
+      <div id="gradePills" aria-label="总成绩等级选项"></div>
       <span class="gr-label" style="margin-left:20px;">成绩组合：</span>
       <select class="form-select" id="scoreCombo" disabled style="flex:1;min-width:200px;">
         <option value="">-- 请先选择等级 --</option>
@@ -329,18 +329,22 @@ function doMatch() {
     .filter(function(s) { return typeof s[meta.cutoffRank] === "number"; })
     .sort(function(a, b) { return a[meta.cutoffRank] - b[meta.cutoffRank]; });
   var safeStart = schools.findIndex(function(s) { return s[meta.cutoffRank] >= rankEnd; });
+  // 始终给出 3 所学校：以临界学校为中心，前一所作为冲刺，其余作为参考匹配。
   var recommendations = [];
+  var startIndex;
   if (safeStart === -1) {
-    recommendations = schools.slice(-3).map(function(s) { return { entry: s, type: "rec" }; });
+    startIndex = Math.max(0, schools.length - 3);
+  } else if (safeStart === 0) {
+    startIndex = 0;
   } else {
-    if (safeStart > 0) recommendations.push({ entry: schools[safeStart - 1], type: "try" });
-    recommendations.push({ entry: schools[safeStart], type: "rec" });
-    if (schools[safeStart + 1]) recommendations.push({ entry: schools[safeStart + 1], type: "rec" });
-    if (recommendations.length < 3 && schools[safeStart + 2]) recommendations.push({ entry: schools[safeStart + 2], type: "rec" });
+    startIndex = Math.min(safeStart - 1, Math.max(0, schools.length - 3));
+  }
+  for (var r = startIndex; r < Math.min(startIndex + 3, schools.length); r++) {
+    recommendations.push({ entry: schools[r], type: safeStart > 0 && r < safeStart ? "try" : "rec" });
   }
 
   html += '<h3 class="recommend-heading">参考2025实际录取线的学校建议</h3><div class="result-list">';
-  recommendations.slice(0, 3).forEach(function(rec, index) {
+  recommendations.forEach(function(rec, index) {
     var e = rec.entry;
     var isTry = rec.type === "try";
     var cardClass = isTry ? "try-card" : "rec-card";
