@@ -119,7 +119,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 }
 
 .empty-state { text-align: center; padding: 32px; color: #ccc; font-size: 14px; }
-.footer { text-align: center; padding: 28px; font-size: 12px; color: #bbb; }
+.footer { text-align: center; padding: 28px; font-size: 14px; color: #999; font-weight: 600; }
+.disclaimer-box { margin-top: 24px; padding: 16px 20px; background: #FFF8E7; border: 2px solid #E0C060; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; color: #8C6A2A; line-height: 1.8; }
 
 .consult-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 32px; background: #fff; color: var(--primary-dark); border: 2px solid var(--primary-dark); border-radius: var(--radius-sm); font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; margin-top: 14px; letter-spacing: 0.5px; }
 .consult-btn:hover { background: var(--primary-light); }
@@ -190,7 +191,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 </div>
 
 <div class="footer">
-  数据来源：南宁中考招生信息网 | 2025年录取线仅供参考，2026年实际录取线以官方公布为准
+  ⚠️ 数据来源：南宁中考招生信息网 | 2025年录取线仅供参考，2026年实际录取线以官方公布为准
 </div>
 
 <div class="modal-overlay" id="consultModal" onclick="if(event.target===this)closeConsult()">
@@ -445,7 +446,7 @@ function doMatch() {
       html += '</div>';
     }
   }
-  html += '<div style="margin-top:20px; padding:14px 18px; background:#f8f8f6; border-radius:10px; font-size:13px; color:var(--text-secondary);">说明：2026理论容量用于判断可覆盖的高中层级，2025实际最低排名用于判断学校难度。两者都只作择校参考，正式录取以当年招生计划、报名热度和系统排序为准。</div>';
+  html += '<div class="disclaimer-box">⚠️ 说明：2026理论容量用于判断可覆盖的高中层级，2025实际最低排名用于判断学校难度。两者都只作择校参考，正式录取以当年招生计划、报名热度和系统排序为准。</div>';
   html += '<button class="consult-btn consult-btn-sm" onclick="openConsult()" style="margin-top:16px;">1对1升学咨询</button>';
 
   document.getElementById("resultContent").innerHTML = html;
