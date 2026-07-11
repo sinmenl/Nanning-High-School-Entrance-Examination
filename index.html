@@ -6,34 +6,33 @@
 <title>2026南宁中考择校助手</title>
 <style>
 :root {
-  --green: #1B4332;
-  --green-light: #2D5A3D;
-  --mint: #E8F5E9;
-  --mint-dark: #A5D6A7;
-  --bg: #F9F8F5;
+  --primary: #B8A9C9;
+  --primary-light: #D4C5E2;
+  --primary-dark: #9B8EB5;
+  --bg: #FBF5F1;
   --card: #FFFFFF;
-  --text: #2D2D2D;
-  --text-secondary: #888888;
-  --border: #E0E0E0;
-  --border-light: #EEEEEE;
-  --rush-bg: #F5D5CD;
-  --rush-text: #8B3A3A;
-  --safe-bg: #D4E4D4;
-  --safe-text: #2D5A3D;
-  --bottom-bg: #D4E0F0;
-  --bottom-text: #2A4365;
-  --alert-bg: #FDF6E3;
-  --alert-border: #F0D77B;
-  --alert-text: #7A6818;
-  --shadow: 0 2px 12px rgba(0,0,0,0.06);
-  --radius: 12px;
-  --radius-sm: 8px;
+  --text: #4A4458;
+  --text-secondary: #9E9AA8;
+  --border: #E8E0E8;
+  --border-light: #F3EEF3;
+  --rush-bg: #FDE4E1;
+  --rush-text: #C97D7D;
+  --safe-bg: #E3F0E8;
+  --safe-text: #7DAF8D;
+  --bottom-bg: #E0EEF5;
+  --bottom-text: #7D9EAF;
+  --alert-bg: #FFF8E7;
+  --alert-border: #F0D78C;
+  --alert-text: #8C7A4A;
+  --shadow: 0 2px 16px rgba(0,0,0,0.05);
+  --radius: 16px;
+  --radius-sm: 10px;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
 
 /* Header */
-.header { background: var(--green); color: #fff; padding: 28px 24px; text-align: center; }
+.header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); color: #fff; padding: 28px 24px; text-align: center; }
 .header h1 { font-size: 26px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; }
 .header p { font-size: 13px; opacity: 0.8; font-weight: 400; }
 
@@ -42,38 +41,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 
 /* Card */
 .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 32px; margin-bottom: 24px; border: 1px solid var(--border-light); }
-.card h2 { font-size: 20px; color: var(--green); margin-bottom: 24px; font-weight: 700; }
+.card h2 { font-size: 20px; color: var(--primary-dark); margin-bottom: 24px; font-weight: 700; }
 
 /* Step indicator */
 .step-row { display: flex; gap: 20px; margin-bottom: 28px; flex-wrap: wrap; }
 .step { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 240px; }
-.step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--primary-dark); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
 .step-content { flex: 1; }
 .step-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
 
 /* Radio cards for student type */
 .radio-cards { display: flex; gap: 10px; flex-wrap: wrap; }
 .radio-card { flex: 1; min-width: 180px; padding: 14px 16px; border: 2px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; background: #fff; text-align: center; }
-.radio-card:hover { border-color: var(--mint-dark); }
-.radio-card.active { border-color: var(--green); background: var(--mint); }
+.radio-card:hover { border-color: var(--primary); background: var(--bg); }
+.radio-card.active { border-color: var(--primary-dark); background: var(--primary-light); }
 .radio-card .rc-title { font-size: 14px; font-weight: 600; color: var(--text); }
 .radio-card .rc-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-.radio-card.active .rc-title { color: var(--green); }
+.radio-card.active .rc-title { color: var(--primary-dark); }
 
 /* Grade pills */
 .grade-pills { display: flex; gap: 8px; flex-wrap: wrap; }
 .grade-pill { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: #fff; color: var(--text); }
-.grade-pill:hover { border-color: var(--mint-dark); }
-.grade-pill.active { background: var(--green); color: #fff; border-color: var(--green); }
+.grade-pill:hover { border-color: var(--primary); background: var(--bg); }
+.grade-pill.active { background: var(--primary-dark); color: #fff; border-color: var(--primary-dark); }
 
 /* Select dropdown */
 .form-select { width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; color: var(--text); background: #fff; transition: all 0.2s; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; cursor: pointer; }
-.form-select:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(27,67,50,0.12); }
+.form-select:focus { outline: none; border-color: var(--primary-dark); box-shadow: 0 0 0 3px rgba(155,142,181,0.18); }
 .form-select:disabled { background: #f8f8f6; color: #bbb; cursor: not-allowed; }
 
 /* CTA Button */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 48px; background: var(--green); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.25s; width: 100%; letter-spacing: 0.5px; }
-.btn:hover { background: var(--green-light); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(27,67,50,0.25); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 48px; background: var(--primary-dark); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.25s; width: 100%; letter-spacing: 0.5px; }
+.btn:hover { background: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(155,142,181,0.35); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
 .btn-arrow { font-size: 18px; }
 
@@ -83,7 +82,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 
 /* Rank badge */
 .rank-badge { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.rank-badge .rank-num { font-size: 36px; font-weight: 800; color: var(--green); letter-spacing: -0.5px; }
+.rank-badge .rank-num { font-size: 36px; font-weight: 800; color: var(--primary-dark); letter-spacing: -0.5px; }
 .rank-badge .rank-label { font-size: 15px; color: var(--text-secondary); font-weight: 500; }
 .rank-badge .rank-pct { font-size: 13px; color: var(--text-secondary); }
 
