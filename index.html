@@ -179,7 +179,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
       开始匹配 →
     </button>
     <button class="consult-btn" onclick="openConsult()">
-      1对1咨询
+      1对1升学咨询
     </button>
   </div>
 
@@ -196,7 +196,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 <div class="modal-overlay" id="consultModal" onclick="if(event.target===this)closeConsult()">
   <div class="modal-box">
     <button class="modal-close" onclick="closeConsult()">&times;</button>
-    <h3>1对1咨询</h3>
+    <h3>1对1升学咨询</h3>
     <div class="phone-row">
       <span class="phone-label">咨询热线：</span>
       <span class="phone-num">13347600970</span>
@@ -407,7 +407,7 @@ function doMatch() {
   });
   html += '</div>';
   html += '<div style="margin-top:20px; padding:14px 18px; background:#f8f8f6; border-radius:10px; font-size:13px; color:var(--text-secondary);">说明：2026理论容量用于判断可覆盖的高中层级，2025实际最低排名用于判断学校难度。两者都只作择校参考，正式录取以当年招生计划、报名热度和系统排序为准。</div>';
-  html += '<button class="consult-btn consult-btn-sm" onclick="openConsult()" style="margin-top:16px;">1对1咨询</button>';
+  html += '<button class="consult-btn consult-btn-sm" onclick="openConsult()" style="margin-top:16px;">1对1升学咨询</button>';
 
   document.getElementById("resultContent").innerHTML = html;
   document.getElementById("resultCard").classList.add("result-show");
