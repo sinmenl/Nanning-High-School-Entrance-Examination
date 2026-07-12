@@ -115,6 +115,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 .school-card .sc-item { font-size: 13px; color: var(--text-secondary); }
 .school-card .sc-item strong { color: var(--text); font-weight: 600; }
 .school-card .sc-note { grid-column: 1 / -1; padding: 8px 10px; background: rgba(255,255,255,0.65); border-radius: 8px; font-size: 12px; color: var(--text); }
+.school-card .sc-plan { grid-column: 1 / -1; padding-top: 4px; font-size: 12px; color: var(--text-secondary); }
+.share-btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 12px; padding: 9px 18px; border: 1px solid var(--primary-dark); border-radius: 6px; background: #fff; color: var(--primary-dark); font-size: 13px; font-weight: 700; cursor: pointer; }
+.share-btn:hover { background: var(--primary-light); }
 
 @media (max-width: 600px) {
   .school-card .sc-body { grid-template-columns: 1fr; }
@@ -182,6 +185,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
       </select>
     </div>
 
+    <div class="score-row" style="margin-bottom:28px;">
+      <span class="gr-label">学校性质</span>
+      <select class="form-select" id="schoolPreference">
+        <option value="all">公办 / 民办高中（综合推荐）</option>
+        <option value="public">优先推荐公办高中</option>
+        <option value="private">优先推荐民办高中</option>
+      </select>
+    </div>
+
     <button class="btn" id="matchBtn" disabled onclick="doMatch()">
       开始匹配 →
     </button>
@@ -226,6 +238,7 @@ allGrades.sort(function(a, b) { return gradeOrder.indexOf(a) - gradeOrder.indexO
 
 var studentType = "";
 var selectedGrade = "";
+var schoolPreference = "all";
 
 // 示范性高中固定排名顺序（含招生计划映射Key）
 var SCHOOL_RANKING = [
@@ -280,6 +293,7 @@ function selectStudentType(val, el) {
   document.getElementById("matchBtn").disabled = true;
   document.getElementById("resultCard").classList.remove("result-show");
   renderGradePills();
+  persistFormState();
 }
 
 function renderGradePills() {
@@ -311,11 +325,76 @@ function selectGrade(g, el) {
   });
   document.getElementById("matchBtn").disabled = true;
   document.getElementById("resultCard").classList.remove("result-show");
+  persistFormState();
 }
 
 document.getElementById("scoreCombo").addEventListener("change", function() {
   document.getElementById("matchBtn").disabled = !this.value;
+  persistFormState();
 });
+
+document.getElementById("schoolPreference").addEventListener("change", function() {
+  schoolPreference = this.value;
+  persistFormState();
+});
+
+function persistFormState() {
+  try {
+    localStorage.setItem("nnSchoolHelperState", JSON.stringify({
+      studentType: studentType,
+      grade: selectedGrade,
+      combo: document.getElementById("scoreCombo").value,
+      preference: document.getElementById("schoolPreference").value
+    }));
+  } catch (e) {}
+}
+
+function updateShareUrl() {
+  var params = new URLSearchParams();
+  if (studentType) params.set("t", studentType);
+  if (selectedGrade) params.set("g", selectedGrade);
+  if (document.getElementById("scoreCombo").value) params.set("c", document.getElementById("scoreCombo").value);
+  if (schoolPreference && schoolPreference !== "all") params.set("p", schoolPreference);
+  var query = params.toString();
+  history.replaceState({}, "", location.pathname + (query ? "?" + query : ""));
+}
+
+function shareResult() {
+  updateShareUrl();
+  var url = location.href;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() { alert("结果链接已复制，可直接发给家长或朋友。"); }, function() { window.prompt("复制下面链接分享结果：", url); });
+  } else {
+    window.prompt("复制下面链接分享结果：", url);
+  }
+}
+
+function restoreFormState() {
+  var params = new URLSearchParams(location.search);
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem("nnSchoolHelperState") || "{}"); } catch (e) {}
+  var type = params.get("t") || saved.studentType;
+  var grade = params.get("g") || saved.grade;
+  var combo = params.get("c") || saved.combo;
+  var preference = params.get("p") || saved.preference || "all";
+  var preferenceSelect = document.getElementById("schoolPreference");
+  if (["all", "public", "private"].indexOf(preference) !== -1) {
+    preferenceSelect.value = preference;
+    schoolPreference = preference;
+  }
+  var typeCard = document.querySelector('#studentCards .type-card[data-value="' + type + '"]');
+  if (!typeCard || allGrades.indexOf(grade) === -1) return;
+  selectStudentType(type, typeCard);
+  var gradePill = Array.prototype.find.call(document.querySelectorAll(".grade-pill"), function(pill) { return pill.textContent === grade; });
+  if (!gradePill) return;
+  selectGrade(grade, gradePill);
+  var comboSelect = document.getElementById("scoreCombo");
+  if (Array.prototype.some.call(comboSelect.options, function(option) { return option.value === combo; })) {
+    comboSelect.value = combo;
+    document.getElementById("matchBtn").disabled = false;
+    doMatch();
+  }
+}
 
 function normalizeText(text) {
   return String(text || "")
@@ -362,8 +441,13 @@ function getMatchedSchools(meta, rankEnd, predicate, limit, useFallback) {
   var schools = CUTOFF_DATA
     .filter(predicate)
     .map(function(s) {
-      var effectiveRank = getEffectiveRank(s, meta);
-      return { entry: s, effectiveRank: effectiveRank, meta: meta };
+      var itemMeta = meta;
+      // 民办学校在现有数据中以指导性录取线记录，供本地考生选择民办偏好时作参考。
+      if (meta.name === "非定向" && isPrivateSchool(s) && typeof s[meta.cutoffRank] !== "number" && typeof s["指导最低排名"] === "number") {
+        itemMeta = { cutoffRank: "指导最低排名", cutoffScore: "指导最低成绩", name: "民办录取参考" };
+      }
+      var effectiveRank = getEffectiveRank(s, itemMeta);
+      return { entry: s, effectiveRank: effectiveRank, meta: itemMeta };
     })
     .filter(function(item) { return typeof item.effectiveRank === "number"; })
     .sort(function(a, b) { return a.effectiveRank - b.effectiveRank; });
@@ -380,9 +464,18 @@ function getMatchedSchools(meta, rankEnd, predicate, limit, useFallback) {
   return matches;
 }
 
-function getRecommendations(studentType, meta, rankEnd) {
+function prioritizeSchoolType(items, preference, limit) {
+  if (preference !== "public" && preference !== "private") return items.slice(0, limit);
+  return items.slice().sort(function(a, b) {
+    var aPreferred = isPrivateSchool(a.entry) === (preference === "private") ? 0 : 1;
+    var bPreferred = isPrivateSchool(b.entry) === (preference === "private") ? 0 : 1;
+    return aPreferred - bPreferred || a.effectiveRank - b.effectiveRank;
+  }).slice(0, limit);
+}
+
+function getRecommendations(studentType, meta, rankEnd, preference) {
   if (studentType !== "nn-targeted") {
-    return getMatchedSchools(meta, rankEnd, function() { return true; }, 4);
+    return prioritizeSchoolType(getMatchedSchools(meta, rankEnd, function() { return true; }, 100), preference, 4);
   }
 
   var targetedMeta = { cutoffRank: "定向最低排名", cutoffScore: "定向最低等级", name: "地段生定向" };
@@ -392,12 +485,13 @@ function getRecommendations(studentType, meta, rankEnd) {
   var ordinaryLimit = 4 - demoLimit;
   var demoSchools = getMatchedSchools(targetedMeta, rankEnd, function(s) {
     return typeof s["定向最低排名"] === "number";
-  }, demoLimit, false);
+  }, 100, false);
   var ordinarySchools = getMatchedSchools(localMeta, rankEnd, function(s) {
     return typeof s["定向最低排名"] !== "number";
-  }, ordinaryLimit);
+  }, 100);
 
-  return demoSchools.concat(ordinarySchools).slice(0, 4);
+  return prioritizeSchoolType(demoSchools, preference, demoLimit)
+    .concat(prioritizeSchoolType(ordinarySchools, preference, ordinaryLimit)).slice(0, 4);
 }
 
 function isPrivateSchool(entry) {
@@ -479,6 +573,9 @@ function getApproxTargetedRank(quota, multiplier) {
 function doMatch() {
   var combo = document.getElementById("scoreCombo").value;
   if (!studentType || !selectedGrade || !combo) return;
+  schoolPreference = document.getElementById("schoolPreference").value;
+  persistFormState();
+  updateShareUrl();
 
   var match = SCORE_DATA.find(function(s) { return s["总成绩组合"] === combo; });
   if (!match) return;
@@ -523,7 +620,7 @@ function doMatch() {
     html += '<div class="empty-state" style="color:#C0392B;font-weight:600;font-size:16px;">暂无推荐高中</div>';
     html += '<div class="rule-note" style="margin-top:12px;background:#FFF0F0;border-left-color:#C0392B;">您的排名（第' + rankEnd.toLocaleString() + '名）低于2025年南宁市公办普通高中最低录取线（第' + MIN_RANK_2025.toLocaleString() + '名），且超出2026年扩招预估范围（第' + MAX_RANK_2026.toLocaleString() + '名），无法匹配到推荐高中。建议关注民办高中或中职学校。</div>';
   } else {
-    var recommendations = getRecommendations(studentType, meta, rankEnd);
+    var recommendations = getRecommendations(studentType, meta, rankEnd, schoolPreference);
 
     if (!recommendations.length) {
       html += '<div class="empty-state">暂无推荐高中</div>';
@@ -532,7 +629,8 @@ function doMatch() {
       if (studentType === "nn-targeted") {
         html += '<div class="capacity-summary" style="margin:0 0 16px;">地段生会优先参考示范性高中的定向机会；若排名靠后，则只保留1所示范性参考，其余按指令非定向线补充普通高中。</div>';
       } else {
-        html += '<div class="capacity-summary" style="margin:0 0 16px;">以下学校按2025最低录取难度由高到低衔接到当前分数段，仅作参考匹配。</div>';
+        var preferenceText = schoolPreference === "public" ? "已优先展示公办高中；推荐不足时会补充民办高中。" : schoolPreference === "private" ? "已优先展示民办高中；推荐不足时会补充公办高中。" : "以下学校按2025最低录取难度由高到低衔接到当前分数段，仅作参考匹配。";
+        html += '<div class="capacity-summary" style="margin:0 0 16px;">' + preferenceText + '</div>';
       }
       html += '<div class="result-list">';
       recommendations.forEach(function(item, index) {
@@ -542,12 +640,16 @@ function doMatch() {
         var cutoffScore = e[itemMeta.cutoffScore] || "--";
         var notes = getSchoolNotes(e);
         var displayName = getDisplaySchoolName(e);
+        var plan = findPlanForSchool(e["学校"]);
+        var rankDifference = cutoffRank - rankEnd;
         html += '<div class="school-card rec-card">';
         html += '<div class="sc-header"><span class="sc-name">' + (index + 1) + '. ' + displayName + '</span><span class="sc-tag rec-tag">参考匹配</span></div>';
         html += '<div class="sc-body">';
         html += '<div class="sc-item">2025' + itemMeta.name + '最低成绩：<strong>' + cutoffScore + '</strong></div>';
         html += '<div class="sc-item">2025' + itemMeta.name + '最低排名：<strong>第 ' + cutoffRank.toLocaleString() + ' 名</strong></div>';
+        html += '<div class="sc-item">与2025参考线差距：<strong>' + (rankDifference >= 0 ? '领先约 ' + rankDifference.toLocaleString() + ' 名' : '落后约 ' + Math.abs(rankDifference).toLocaleString() + ' 名') + '</strong></div>';
         if (typeof e["特控率"] === "number") html += '<div class="sc-item">2025特控率：<strong>' + (e["特控率"] * 100).toFixed(1) + '%</strong></div>';
+        if (plan && typeof plan["计划总人数"] === "number") html += '<div class="sc-plan">2026计划招生：<strong>' + plan["计划总人数"].toLocaleString() + ' 人</strong></div>';
         notes.forEach(function(note) {
           html += '<div class="sc-note">' + note + '</div>';
         });
@@ -557,6 +659,7 @@ function doMatch() {
     }
   }
   html += '<div class="disclaimer-box">⚠️ 说明：推荐结果根据2026成绩分布排名与2025实际最低录取线估算。民办学校、特色高中、地段生资格、报名热度和系统排序都会影响最终录取，请以当年官方招生政策和学校确认结果为准。</div>';
+  html += '<button class="share-btn" onclick="shareResult()">复制结果分享链接</button>';
   html += '<button class="consult-btn consult-btn-sm" onclick="openConsult()" style="margin-top:16px;">1对1升学咨询</button>';
 
   document.getElementById("resultContent").innerHTML = html;
@@ -569,6 +672,7 @@ function openConsult() {
 function closeConsult() {
   document.getElementById("consultModal").classList.remove("show");
 }
+restoreFormState();
 document.addEventListener("keydown", function(e) { if (e.key === "Escape") closeConsult(); });
 </script>
 </body>
