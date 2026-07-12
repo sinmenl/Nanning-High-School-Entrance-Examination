@@ -397,11 +397,25 @@ function getRecommendations(studentType, meta, rankEnd) {
   return demoSchools.concat(ordinarySchools).slice(0, 4);
 }
 
+function isPrivateSchool(entry) {
+  var name = entry["学校"];
+  var plan = findPlanForSchool(name);
+  return name.indexOf("民办") !== -1 || (plan && plan["性质"] === "民办学校");
+}
+
+function getDisplaySchoolName(entry) {
+  var name = entry["学校"];
+  if (isPrivateSchool(entry) && name.indexOf("民办") === -1) {
+    return name + "（民办）";
+  }
+  return name;
+}
+
 function getSchoolNotes(entry) {
   var notes = [];
   var name = entry["学校"];
   var plan = findPlanForSchool(name);
-  var isPrivate = name.indexOf("民办") !== -1 || (plan && plan["性质"] === "民办学校");
+  var isPrivate = isPrivateSchool(entry);
   var isArtFive = name.indexOf("第五中学") !== -1 || name.indexOf("五中(") !== -1 || name.indexOf("五中（") !== -1;
 
   if (isPrivate) {
@@ -412,7 +426,7 @@ function getSchoolNotes(entry) {
     } else if (plan && String(plan["学校"]).indexOf("▲") !== -1) {
       notes.push("民办示范性高中");
     } else {
-      notes.push("民办高中");
+      notes.push("民办普通高中");
     }
   }
 
@@ -524,8 +538,9 @@ function doMatch() {
         var itemMeta = item.meta || meta;
         var cutoffScore = e[itemMeta.cutoffScore] || "--";
         var notes = getSchoolNotes(e);
+        var displayName = getDisplaySchoolName(e);
         html += '<div class="school-card rec-card">';
-        html += '<div class="sc-header"><span class="sc-name">' + (index + 1) + '. ' + e["学校"] + '</span><span class="sc-tag rec-tag">参考匹配</span></div>';
+        html += '<div class="sc-header"><span class="sc-name">' + (index + 1) + '. ' + displayName + '</span><span class="sc-tag rec-tag">参考匹配</span></div>';
         html += '<div class="sc-body">';
         html += '<div class="sc-item">2025' + itemMeta.name + '最低成绩：<strong>' + cutoffScore + '</strong></div>';
         html += '<div class="sc-item">2025' + itemMeta.name + '最低排名：<strong>第 ' + cutoffRank.toLocaleString() + ' 名</strong></div>';
