@@ -402,12 +402,22 @@ function showTargetedQuota(juniorSchoolName) {
   var box = document.getElementById("targetedQuotaResult");
   var row = TARGETED_QUOTA_DATA.find(function(item) { return item["初中学校"] === juniorSchoolName; });
   if (!box || !row) return;
-  var ratio = typeof row["名额占地段生比例"] === "number" ? (row["名额占地段生比例"] * 100).toFixed(1) + "%" : "--";
+  var erSanRank = getApproxTargetedRank(row["二、三中名额"], 1.5);
+  var demoRank = getApproxTargetedRank(row["定向名额合计"], 1.15);
   box.innerHTML = '<div><strong>' + row["初中学校"] + '</strong></div>' +
     '<div>地段生人数：' + row["地段生人数"] + ' 人</div>' +
     '<div>二、三中定向名额：' + row["二、三中名额"] + ' 人</div>' +
     '<div>其它示范性高中定向名额：' + row["其它示范性高中名额"] + ' 人</div>' +
-    '<div>定向名额合计：' + row["定向名额合计"] + ' 人，占地段生比例 ' + ratio + '</div>';
+    '<div>定向名额合计：' + row["定向名额合计"] + ' 人。</div>' +
+    '<div style="margin-top:8px;"><strong>自检是否符合使用条件：</strong></div>' +
+    '<div>如果想用地段生名额上二三中，年级排名大概在前' + erSanRank + '名左右。</div>' +
+    '<div>如果想用地段生名额上示范性高中，年级排名大概在前' + demoRank + '名左右。</div>';
+}
+
+function getApproxTargetedRank(quota, multiplier) {
+  var value = Math.ceil(Number(quota || 0) * multiplier);
+  if (value >= 30) return Math.max(10, Math.round(value / 10) * 10);
+  return value;
 }
 
 function doMatch() {
