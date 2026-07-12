@@ -161,7 +161,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
         <div class="tc-sub">参与非定向计划 + 指导性计划</div>
       </div>
       <div class="type-card" data-value="nn-targeted" onclick="selectStudentType('nn-targeted', this)">
-        <div class="tc-title">南宁市户口（定向生）</div>
+        <div class="tc-title">南宁市户口（地段生）</div>
         <div class="tc-sub">需要确保该生能使用地段生名额</div>
       </div>
       <div class="type-card" data-value="non-nanning" onclick="selectStudentType('non-nanning', this)">
@@ -358,6 +358,45 @@ function getEffectiveRank(entry, meta) {
   return null;
 }
 
+function getMatchedSchools(meta, rankEnd, predicate, limit, useFallback) {
+  var schools = CUTOFF_DATA
+    .filter(predicate)
+    .map(function(s) {
+      var effectiveRank = getEffectiveRank(s, meta);
+      return { entry: s, effectiveRank: effectiveRank, meta: meta };
+    })
+    .filter(function(item) { return typeof item.effectiveRank === "number"; })
+    .sort(function(a, b) { return a.effectiveRank - b.effectiveRank; });
+
+  var matches = schools
+    .filter(function(item) { return item.effectiveRank >= rankEnd; })
+    .slice(0, limit);
+
+  if (useFallback !== false && matches.length < Math.min(2, limit) && schools.length) {
+    var fallbackStart = Math.max(0, schools.length - limit);
+    matches = schools.slice(fallbackStart);
+  }
+
+  return matches;
+}
+
+function getRecommendations(studentType, meta, rankEnd) {
+  if (studentType !== "nn-targeted") {
+    return getMatchedSchools(meta, rankEnd, function() { return true; }, 4);
+  }
+
+  var targetedMeta = { cutoffRank: "定向最低排名", cutoffScore: "定向最低等级", name: "地段生定向" };
+  var localMeta = { cutoffRank: "非定向最低排名", cutoffScore: "非定向最低等级", name: "非定向" };
+  var demoSchools = getMatchedSchools(targetedMeta, rankEnd, function(s) {
+    return typeof s["定向最低排名"] === "number";
+  }, 2, false);
+  var ordinarySchools = getMatchedSchools(localMeta, rankEnd, function(s) {
+    return typeof s["定向最低排名"] !== "number";
+  }, 2);
+
+  return demoSchools.concat(ordinarySchools).slice(0, 4);
+}
+
 function getSchoolNotes(entry) {
   var notes = [];
   var name = entry["学校"];
@@ -390,8 +429,8 @@ function buildTargetedQuotaPanel() {
     .join("");
 
   return '<div class="targeted-panel">' +
-    '<div class="tp-title">定向生资格提醒</div>' +
-    '<div class="tp-text">定向推荐只适用于已确认可使用地段生名额的考生。请自行向初中学校或招生部门确认：户籍、学籍、实际就读年限、是否属于该初中定向资格范围，以及校内竞争情况。</div>' +
+    '<div class="tp-title">地段生资格提醒</div>' +
+    '<div class="tp-text">地段生推荐只适用于已确认可使用地段生名额的考生。请自行向初中学校或招生部门确认：户籍、学籍、实际就读年限、是否属于该初中地段生资格范围，以及校内竞争情况。</div>' +
     '<label style="font-size:13px;font-weight:700;">初中学校定向名额分配查询</label>' +
     '<select class="form-select" onchange="showTargetedQuota(this.value)"><option value="">选择初中学校查看分配名额</option>' + options + '</select>' +
     '<div class="targeted-quota-result" id="targetedQuotaResult">请选择学生所在初中，查看该校地段生人数、二三中定向名额、其它示范性高中定向名额和合计。</div>' +
@@ -436,7 +475,7 @@ function doMatch() {
   var MAX_RANK_2026 = MIN_RANK_2025 + NEW_SEATS_2026; // 35472
 
   var PLAN_META = {
-    "nn-targeted": { cutoffRank: "定向最低排名", cutoffScore: "定向最低等级", name: "定向", note: "仅在确认拥有地段生资格、且通过所在初中校内定向竞争时适用。" },
+    "nn-targeted": { cutoffRank: "定向最低排名", cutoffScore: "定向最低等级", name: "地段生定向", note: "仅在确认拥有地段生资格、且通过所在初中校内定向竞争时适用。" },
     "nn-nondirected": { cutoffRank: "非定向最低排名", cutoffScore: "非定向最低等级", name: "非定向", note: "参考指令性非定向计划与指导性计划。" },
     "non-nanning": { cutoffRank: "指导最低排名", cutoffScore: "指导最低成绩", name: "指导性", note: "非南宁市户口考生仅参与指导性计划。" }
   };
@@ -467,39 +506,29 @@ function doMatch() {
     html += '<div class="empty-state" style="color:#C0392B;font-weight:600;font-size:16px;">暂无推荐高中</div>';
     html += '<div class="rule-note" style="margin-top:12px;background:#FFF0F0;border-left-color:#C0392B;">您的排名（第' + rankEnd.toLocaleString() + '名）低于2025年南宁市公办普通高中最低录取线（第' + MIN_RANK_2025.toLocaleString() + '名），且超出2026年扩招预估范围（第' + MAX_RANK_2026.toLocaleString() + '名），无法匹配到推荐高中。建议关注民办高中或中职学校。</div>';
   } else {
-    var schools = CUTOFF_DATA
-      .map(function(s) {
-        var effectiveRank = getEffectiveRank(s, meta);
-        return { entry: s, effectiveRank: effectiveRank };
-      })
-      .filter(function(item) { return typeof item.effectiveRank === "number"; })
-      .sort(function(a, b) { return a.effectiveRank - b.effectiveRank; });
-
-    var recommendations = schools
-      .filter(function(item) { return item.effectiveRank >= rankEnd; })
-      .slice(0, 4);
-
-    if (recommendations.length < 3) {
-      var fallbackStart = Math.max(0, schools.length - 4);
-      recommendations = schools.slice(fallbackStart);
-    }
+    var recommendations = getRecommendations(studentType, meta, rankEnd);
 
     if (!recommendations.length) {
       html += '<div class="empty-state">暂无推荐高中</div>';
     } else {
       html += '<h3 class="recommend-heading">参考2025实际录取线的学校建议</h3>';
-      html += '<div class="capacity-summary" style="margin:0 0 16px;">以下学校按2025最低录取难度由高到低衔接到当前分数段，仅作参考匹配。</div>';
+      if (studentType === "nn-targeted") {
+        html += '<div class="capacity-summary" style="margin:0 0 16px;">地段生会优先参考1-2所示范性高中的定向机会；若成绩段更适合普高，也会按指令非定向线补充1-2所普通高中。</div>';
+      } else {
+        html += '<div class="capacity-summary" style="margin:0 0 16px;">以下学校按2025最低录取难度由高到低衔接到当前分数段，仅作参考匹配。</div>';
+      }
       html += '<div class="result-list">';
       recommendations.forEach(function(item, index) {
         var e = item.entry;
         var cutoffRank = item.effectiveRank;
-        var cutoffScore = e[meta.cutoffScore] || "--";
+        var itemMeta = item.meta || meta;
+        var cutoffScore = e[itemMeta.cutoffScore] || "--";
         var notes = getSchoolNotes(e);
         html += '<div class="school-card rec-card">';
         html += '<div class="sc-header"><span class="sc-name">' + (index + 1) + '. ' + e["学校"] + '</span><span class="sc-tag rec-tag">参考匹配</span></div>';
         html += '<div class="sc-body">';
-        html += '<div class="sc-item">2025' + meta.name + '最低成绩：<strong>' + cutoffScore + '</strong></div>';
-        html += '<div class="sc-item">2025' + meta.name + '最低排名：<strong>第 ' + cutoffRank.toLocaleString() + ' 名</strong></div>';
+        html += '<div class="sc-item">2025' + itemMeta.name + '最低成绩：<strong>' + cutoffScore + '</strong></div>';
+        html += '<div class="sc-item">2025' + itemMeta.name + '最低排名：<strong>第 ' + cutoffRank.toLocaleString() + ' 名</strong></div>';
         if (typeof e["特控率"] === "number") html += '<div class="sc-item">2025特控率：<strong>' + (e["特控率"] * 100).toFixed(1) + '%</strong></div>';
         notes.forEach(function(note) {
           html += '<div class="sc-note">' + note + '</div>';
@@ -509,7 +538,7 @@ function doMatch() {
       html += '</div>';
     }
   }
-  html += '<div class="disclaimer-box">⚠️ 说明：推荐结果根据2026成绩分布排名与2025实际最低录取线估算。民办学校、特色高中、定向生资格、报名热度和系统排序都会影响最终录取，请以当年官方招生政策和学校确认结果为准。</div>';
+  html += '<div class="disclaimer-box">⚠️ 说明：推荐结果根据2026成绩分布排名与2025实际最低录取线估算。民办学校、特色高中、地段生资格、报名热度和系统排序都会影响最终录取，请以当年官方招生政策和学校确认结果为准。</div>';
   html += '<button class="consult-btn consult-btn-sm" onclick="openConsult()" style="margin-top:16px;">1对1升学咨询</button>';
 
   document.getElementById("resultContent").innerHTML = html;
