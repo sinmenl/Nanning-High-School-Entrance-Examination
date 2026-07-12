@@ -387,12 +387,15 @@ function getRecommendations(studentType, meta, rankEnd) {
 
   var targetedMeta = { cutoffRank: "定向最低排名", cutoffScore: "定向最低等级", name: "地段生定向" };
   var localMeta = { cutoffRank: "非定向最低排名", cutoffScore: "非定向最低等级", name: "非定向" };
+  var TARGETED_DEMO_REFERENCE_RANK = 14066;
+  var demoLimit = rankEnd > TARGETED_DEMO_REFERENCE_RANK ? 1 : 2;
+  var ordinaryLimit = 4 - demoLimit;
   var demoSchools = getMatchedSchools(targetedMeta, rankEnd, function(s) {
     return typeof s["定向最低排名"] === "number";
-  }, 2, false);
+  }, demoLimit, false);
   var ordinarySchools = getMatchedSchools(localMeta, rankEnd, function(s) {
     return typeof s["定向最低排名"] !== "number";
-  }, 2);
+  }, ordinaryLimit);
 
   return demoSchools.concat(ordinarySchools).slice(0, 4);
 }
@@ -527,7 +530,7 @@ function doMatch() {
     } else {
       html += '<h3 class="recommend-heading">参考2025实际录取线的学校建议</h3>';
       if (studentType === "nn-targeted") {
-        html += '<div class="capacity-summary" style="margin:0 0 16px;">地段生会优先参考1-2所示范性高中的定向机会；若成绩段更适合普高，也会按指令非定向线补充1-2所普通高中。</div>';
+        html += '<div class="capacity-summary" style="margin:0 0 16px;">地段生会优先参考示范性高中的定向机会；若排名靠后，则只保留1所示范性参考，其余按指令非定向线补充普通高中。</div>';
       } else {
         html += '<div class="capacity-summary" style="margin:0 0 16px;">以下学校按2025最低录取难度由高到低衔接到当前分数段，仅作参考匹配。</div>';
       }
