@@ -647,9 +647,9 @@ function doMatch() {
         html += '<div class="sc-body">';
         html += '<div class="sc-item">2025' + itemMeta.name + '最低成绩：<strong>' + cutoffScore + '</strong></div>';
         html += '<div class="sc-item">2025' + itemMeta.name + '最低排名：<strong>第 ' + cutoffRank.toLocaleString() + ' 名</strong></div>';
-        html += '<div class="sc-item">与2025参考线差距：<strong>' + (rankDifference >= 0 ? '领先约 ' + rankDifference.toLocaleString() + ' 名' : '落后约 ' + Math.abs(rankDifference).toLocaleString() + ' 名') + '</strong></div>';
+        html += '<div class="sc-item">与2025参考线差距：<strong>' + (rankDifference >= 0 ? '高出2025年录取最低排名约 ' + rankDifference.toLocaleString() + ' 名' : '低于2025年录取最低排名约 ' + Math.abs(rankDifference).toLocaleString() + ' 名') + '</strong></div>';
         if (typeof e["特控率"] === "number") html += '<div class="sc-item">2025特控率：<strong>' + (e["特控率"] * 100).toFixed(1) + '%</strong></div>';
-        if (plan && typeof plan["计划总人数"] === "number") html += '<div class="sc-plan">2026计划招生：<strong>' + plan["计划总人数"].toLocaleString() + ' 人</strong></div>';
+        if (plan) html += '<div class="sc-plan">2026招生计划：指令定向 <strong>' + Number(plan["定向名额"] || 0).toLocaleString() + ' 人</strong>，指令非定向 <strong>' + Number(plan["非定向名额"] || 0).toLocaleString() + ' 人</strong>，指导 <strong>' + Number(plan["指导性计划人数"] || 0).toLocaleString() + ' 人</strong></div>';
         notes.forEach(function(note) {
           html += '<div class="sc-note">' + note + '</div>';
         });
