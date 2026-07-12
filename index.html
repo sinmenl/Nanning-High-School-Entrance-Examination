@@ -92,6 +92,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 .capacity-item small { font-size: 11px; color: var(--text-secondary); }
 .capacity-summary { font-size: 12px; color: var(--text-secondary); margin-top: 14px; line-height: 1.7; }
 .capacity-summary.warning { color: #B87530; }
+.targeted-panel { margin: 0 0 24px; padding: 16px 18px; background: #FFF8E7; border: 2px solid #E0C060; border-radius: var(--radius-sm); color: #8C6A2A; }
+.targeted-panel .tp-title { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+.targeted-panel .tp-text { font-size: 13px; line-height: 1.8; margin-bottom: 12px; }
+.targeted-panel .form-select { border-color: #E0C060; margin-top: 8px; }
+.targeted-quota-result { margin-top: 10px; font-size: 13px; color: var(--text); font-weight: 600; }
 
 .school-card { border-radius: var(--radius-sm); border: 2px solid var(--border-light); background: #fff; overflow: hidden; }
 .school-card.try-card { border-color: var(--try-border); background: var(--try-bg); }
@@ -109,6 +114,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 .school-card .sc-body { padding: 0 20px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
 .school-card .sc-item { font-size: 13px; color: var(--text-secondary); }
 .school-card .sc-item strong { color: var(--text); font-weight: 600; }
+.school-card .sc-note { grid-column: 1 / -1; padding: 8px 10px; background: rgba(255,255,255,0.65); border-radius: 8px; font-size: 12px; color: var(--text); }
 
 @media (max-width: 600px) {
   .school-card .sc-body { grid-template-columns: 1fr; }
@@ -310,6 +316,95 @@ document.getElementById("scoreCombo").addEventListener("change", function() {
   document.getElementById("matchBtn").disabled = !this.value;
 });
 
+function normalizeText(text) {
+  return String(text || "")
+    .replace(/\s+/g, "")
+    .replace(/[（）]/g, function(ch) { return ch === "（" ? "(" : ")"; })
+    .replace(/★|▲|※/g, "");
+}
+
+function normalizeSchoolName(name) {
+  return normalizeText(name)
+    .replace(/南宁市/g, "")
+    .replace(/学校|中学|高级高中|高级中学|高中部/g, "")
+    .replace(/\(.*?\)/g, "");
+}
+
+function scoreToRank(score) {
+  var normalized = normalizeText(score);
+  if (!normalized || normalized === "-") return null;
+  var row = SCORE_DATA.find(function(s) {
+    return normalizeText(s["总成绩组合"]) === normalized;
+  });
+  return row ? row["累计人数"] : null;
+}
+
+function findPlanForSchool(schoolName) {
+  var schoolKey = normalizeSchoolName(schoolName);
+  var best = null;
+  PLAN_DATA.forEach(function(plan) {
+    var planKey = normalizeSchoolName(plan["学校"]);
+    if (!best && (schoolKey.indexOf(planKey) !== -1 || planKey.indexOf(schoolKey) !== -1)) {
+      best = plan;
+    }
+  });
+  return best;
+}
+
+function getEffectiveRank(entry, meta) {
+  if (typeof entry[meta.cutoffRank] === "number") return entry[meta.cutoffRank];
+  if (entry[meta.cutoffScore]) return scoreToRank(entry[meta.cutoffScore]);
+  return null;
+}
+
+function getSchoolNotes(entry) {
+  var notes = [];
+  var name = entry["学校"];
+  var plan = findPlanForSchool(name);
+  var isPrivate = name.indexOf("民办") !== -1 || (plan && plan["性质"] === "民办学校");
+  var isArtFive = name.indexOf("第五中学") !== -1 || name.indexOf("五中(") !== -1 || name.indexOf("五中（") !== -1;
+
+  if (isPrivate) {
+    if (name.indexOf("第一档") !== -1 || (plan && String(plan["学校"]).indexOf("第一档") !== -1)) {
+      notes.push("民办示范性高中（第一档按示范性高中录取线）");
+    } else if (name.indexOf("第二档") !== -1 || (plan && String(plan["学校"]).indexOf("第二档") !== -1)) {
+      notes.push("民办示范性高中第二档（按普通高中录取线）");
+    } else if (plan && String(plan["学校"]).indexOf("▲") !== -1) {
+      notes.push("民办示范性高中");
+    } else {
+      notes.push("民办高中");
+    }
+  }
+
+  if (isArtFive) {
+    notes.push("自治区一星级美术特色高中；非美术路线学生需谨慎选择");
+  }
+
+  return notes;
+}
+
+function buildTargetedQuotaPanel() {
+  var options = PLAN_DATA
+    .filter(function(p) { return typeof p["定向名额"] === "number"; })
+    .map(function(p) { return '<option value="' + p["学校"] + '">' + p["学校"].replace(/★|▲|※/g, "") + '</option>'; })
+    .join("");
+
+  return '<div class="targeted-panel">' +
+    '<div class="tp-title">定向生资格提醒</div>' +
+    '<div class="tp-text">定向推荐只适用于已确认可使用地段生名额的考生。请自行向初中学校或招生部门确认：户籍、学籍、实际就读年限、是否属于该初中定向资格范围，以及校内竞争情况。</div>' +
+    '<label style="font-size:13px;font-weight:700;">各示范性高中定向名额查询</label>' +
+    '<select class="form-select" onchange="showTargetedQuota(this.value)"><option value="">选择高中查看定向名额</option>' + options + '</select>' +
+    '<div class="targeted-quota-result" id="targetedQuotaResult">当前先显示各高中定向总名额；初中分配明细可后续接入完整表格。</div>' +
+    '</div>';
+}
+
+function showTargetedQuota(schoolName) {
+  var box = document.getElementById("targetedQuotaResult");
+  var plan = PLAN_DATA.find(function(p) { return p["学校"] === schoolName; });
+  if (!box || !plan) return;
+  box.innerHTML = plan["学校"].replace(/★|▲|※/g, "") + "：2026年定向名额 " + plan["定向名额"] + " 人，非定向名额 " + plan["非定向名额"] + " 人，指导性计划 " + plan["指导性计划人数"] + " 人。";
+}
+
 function doMatch() {
   var combo = document.getElementById("scoreCombo").value;
   if (!studentType || !selectedGrade || !combo) return;
@@ -321,37 +416,16 @@ function doMatch() {
   var rankStart = rankEnd - match["人数"] + 1;
   var pct = (match["累计占比"] * 100).toFixed(2);
 
-  // ===== 约束条件常量 =====
   var MIN_RANK_2025 = 33492;   // 2025年公办普高最低录取排名
   var NEW_SEATS_2026 = 1980;   // 2026年新增学位合计
   var MAX_RANK_2026 = MIN_RANK_2025 + NEW_SEATS_2026; // 35472
 
-  // 2026 招生计划的全市理论容量
-  var CAPACITY = {
-    "nn-targeted": [
-      { label: "二三中（含三中五象）", slots: 3949, cumulative: 3949 },
-      { label: "其余示范性高中", slots: 14066, cumulative: 18015 },
-      { label: "普通高中", slots: 27572, cumulative: 45587 }
-    ],
-    "nn-nondirected": [
-      { label: "二三中（含三中五象）", slots: 2095, cumulative: 2095 },
-      { label: "其余示范性高中", slots: 8951, cumulative: 11046 },
-      { label: "普通高中", slots: 27572, cumulative: 38618 }
-    ],
-    "non-nanning": [
-      { label: "二三中（含三中五象）", slots: 411, cumulative: 411 },
-      { label: "其余示范性高中", slots: 4571, cumulative: 4982 },
-      { label: "普通高中", slots: 18863, cumulative: 23845 }
-    ]
-  };
   var PLAN_META = {
     "nn-targeted": { cutoffRank: "定向最低排名", cutoffScore: "定向最低等级", name: "定向", note: "仅在确认拥有地段生资格、且通过所在初中校内定向竞争时适用。" },
     "nn-nondirected": { cutoffRank: "非定向最低排名", cutoffScore: "非定向最低等级", name: "非定向", note: "参考指令性非定向计划与指导性计划。" },
     "non-nanning": { cutoffRank: "指导最低排名", cutoffScore: "指导最低成绩", name: "指导性", note: "非南宁市户口考生仅参与指导性计划。" }
   };
   var meta = PLAN_META[studentType];
-  var levels = CAPACITY[studentType];
-  var capacityLevel = levels.find(function(item) { return rankEnd <= item.cumulative; });
 
   var html = "";
   html += '<div class="rank-badge">';
@@ -360,7 +434,6 @@ function doMatch() {
   html += '<span class="rank-pct">（位于全市前 ' + pct + '%）</span>';
   html += '</div>';
 
-  // ===== 状态提示 =====
   var statusIcon, statusText, statusColor;
   if (rankEnd <= MIN_RANK_2025) {
     statusIcon = "✅"; statusText = "你的排名在2025年公办普高录取线内"; statusColor = "#5A8A6A";
@@ -371,82 +444,57 @@ function doMatch() {
   }
   html += '<div class="rule-note" style="border-left-color:' + statusColor + ';background:' + (rankEnd <= MAX_RANK_2026 ? 'var(--rec-bg)' : '#FFF0F0') + ';"><strong>' + statusIcon + ' ' + statusText + '</strong></div>';
 
-  html += '<div class="capacity-panel"><div class="capacity-title">2026理论容量参考</div><div class="capacity-grid">';
-  levels.forEach(function(item) {
-    var active = capacityLevel && item.label === capacityLevel.label ? " active" : "";
-    html += '<div class="capacity-item' + active + '"><span>' + item.label + '</span><strong>' + item.slots.toLocaleString() + ' 人</strong><small>累计 ' + item.cumulative.toLocaleString() + ' 人</small></div>';
-  });
-  html += '</div>';
-  if (capacityLevel) {
-    html += '<div class="capacity-summary">按全市计划容量估算，你的排名落在「<strong>' + capacityLevel.label + '</strong>」覆盖范围内。</div>';
-  } else {
-    html += '<div class="capacity-summary warning">该排名超过当前口径下普通高中的理论容量，建议同步关注民办学校、补录与中职升学路径。</div>';
+  if (studentType === "nn-targeted") {
+    html += buildTargetedQuotaPanel();
   }
-  html += '</div>';
 
-  // ===== 核心约束逻辑 =====
   if (rankEnd > MAX_RANK_2026) {
-    // 约束1：超出2026预估最末排名 → 暂无推荐高中
     html += '<div class="empty-state" style="color:#C0392B;font-weight:600;font-size:16px;">暂无推荐高中</div>';
     html += '<div class="rule-note" style="margin-top:12px;background:#FFF0F0;border-left-color:#C0392B;">您的排名（第' + rankEnd.toLocaleString() + '名）低于2025年南宁市公办普通高中最低录取线（第' + MIN_RANK_2025.toLocaleString() + '名），且超出2026年扩招预估范围（第' + MAX_RANK_2026.toLocaleString() + '名），无法匹配到推荐高中。建议关注民办高中或中职学校。</div>';
-  } else if (rankEnd > MIN_RANK_2025) {
-    // 约束2：在扩招机会区 → 推荐新增/扩招学校
-    html += '<h3 class="recommend-heading">扩招机会校</h3>';
-    html += '<div class="capacity-summary" style="margin-bottom:16px;">您的排名超出2025年公办普高录取线，但2026年部分高中扩招/新增，以下学校可作为重点考虑：</div>';
-    html += '<div class="result-list">';
-
-    var expansionSchools = [
-      { name: "琼林学校", note: "扩招600人，机会较大", tag: "扩招机会", plus: "+600人" },
-      { name: "银海三雅学校", note: "扩招500人", tag: "扩招机会", plus: "+500人" },
-      { name: "南洋高级中学", note: "2026年首次招生（600人）", tag: "新增学校", plus: "2026新增" },
-      { name: "博鸿高级中学", note: "2026年首次招生（300人）", tag: "新增学校", plus: "2026新增" }
-    ];
-    expansionSchools.forEach(function(s, i) {
-      var isNew = s.tag === "新增学校";
-      html += '<div class="school-card ' + (isNew ? 'try-card' : 'rec-card') + '">';
-      html += '<div class="sc-header"><span class="sc-name">' + (i + 1) + '. ' + s.name + '</span><span class="sc-tag ' + (isNew ? 'try-tag' : 'rec-tag') + '">' + s.tag + '</span></div>';
-      html += '<div class="sc-body"><div class="sc-item">' + s.note + '</div><div class="sc-item">招生增量：<strong>' + s.plus + '</strong></div></div>';
-      html += '</div>';
-    });
-    html += '</div>';
   } else {
-    // 正常推荐：排名在2025年公办普高录取线内
     var schools = CUTOFF_DATA
-      .filter(function(s) { return typeof s[meta.cutoffRank] === "number"; })
-      .sort(function(a, b) { return a[meta.cutoffRank] - b[meta.cutoffRank]; });
-    var safeStart = schools.findIndex(function(s) { return s[meta.cutoffRank] >= rankEnd; });
-    var recommendations = [];
+      .map(function(s) {
+        var effectiveRank = getEffectiveRank(s, meta);
+        return { entry: s, effectiveRank: effectiveRank };
+      })
+      .filter(function(item) { return typeof item.effectiveRank === "number"; })
+      .sort(function(a, b) { return a.effectiveRank - b.effectiveRank; });
 
-    if (safeStart === -1) {
+    var recommendations = schools
+      .filter(function(item) { return item.effectiveRank >= rankEnd; })
+      .slice(0, 4);
+
+    if (recommendations.length < 3) {
+      var fallbackStart = Math.max(0, schools.length - 4);
+      recommendations = schools.slice(fallbackStart);
+    }
+
+    if (!recommendations.length) {
       html += '<div class="empty-state">暂无推荐高中</div>';
     } else {
-      var startIndex = Math.max(0, safeStart - 1);
-      var endIndex = Math.min(startIndex + 3, schools.length);
-      for (var r = startIndex; r < endIndex; r++) {
-        recommendations.push({ entry: schools[r], type: r < safeStart ? "try" : "rec" });
-      }
-
-      html += '<h3 class="recommend-heading">参考2025实际录取线的学校建议</h3><div class="result-list">';
-      recommendations.forEach(function(rec, index) {
-        var e = rec.entry;
-        var isTry = rec.type === "try";
-        var cardClass = isTry ? "try-card" : "rec-card";
-        var tagClass = isTry ? "try-tag" : "rec-tag";
-        var tagText = isTry ? "冲刺" : "参考匹配";
-        var cutoffRank = e[meta.cutoffRank];
+      html += '<h3 class="recommend-heading">参考2025实际录取线的学校建议</h3>';
+      html += '<div class="capacity-summary" style="margin:0 0 16px;">以下学校按2025最低录取难度由高到低衔接到当前分数段，仅作参考匹配。</div>';
+      html += '<div class="result-list">';
+      recommendations.forEach(function(item, index) {
+        var e = item.entry;
+        var cutoffRank = item.effectiveRank;
         var cutoffScore = e[meta.cutoffScore] || "--";
-        html += '<div class="school-card ' + cardClass + '">';
-        html += '<div class="sc-header"><span class="sc-name">' + (index + 1) + '. ' + e["学校"] + '</span><span class="sc-tag ' + tagClass + '">' + tagText + '</span></div>';
+        var notes = getSchoolNotes(e);
+        html += '<div class="school-card rec-card">';
+        html += '<div class="sc-header"><span class="sc-name">' + (index + 1) + '. ' + e["学校"] + '</span><span class="sc-tag rec-tag">参考匹配</span></div>';
         html += '<div class="sc-body">';
         html += '<div class="sc-item">2025' + meta.name + '最低成绩：<strong>' + cutoffScore + '</strong></div>';
         html += '<div class="sc-item">2025' + meta.name + '最低排名：<strong>第 ' + cutoffRank.toLocaleString() + ' 名</strong></div>';
         if (typeof e["特控率"] === "number") html += '<div class="sc-item">2025特控率：<strong>' + (e["特控率"] * 100).toFixed(1) + '%</strong></div>';
+        notes.forEach(function(note) {
+          html += '<div class="sc-note">' + note + '</div>';
+        });
         html += '</div></div>';
       });
       html += '</div>';
     }
   }
-  html += '<div class="disclaimer-box">⚠️ 说明：2026理论容量用于判断可覆盖的高中层级，2025实际最低排名用于判断学校难度。两者都只作择校参考，正式录取以当年招生计划、报名热度和系统排序为准。</div>';
+  html += '<div class="disclaimer-box">⚠️ 说明：推荐结果根据2026成绩分布排名与2025实际最低录取线估算。民办学校、特色高中、定向生资格、报名热度和系统排序都会影响最终录取，请以当年官方招生政策和学校确认结果为准。</div>';
   html += '<button class="consult-btn consult-btn-sm" onclick="openConsult()" style="margin-top:16px;">1对1升学咨询</button>';
 
   document.getElementById("resultContent").innerHTML = html;
