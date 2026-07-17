@@ -119,7 +119,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
 .share-btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 12px; padding: 9px 18px; border: 1px solid var(--primary-dark); border-radius: 6px; background: #fff; color: var(--primary-dark); font-size: 13px; font-weight: 700; cursor: pointer; }
 .share-btn:hover { background: var(--primary-light); }
 
-.score-reference-card h2 { margin-bottom: 8px; }
+.score-reference-card summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; list-style: none; }
+.score-reference-card summary::-webkit-details-marker { display: none; }
+.score-reference-card summary h2 { margin: 0; }
+.score-reference-card summary::after { content: "展开"; flex: 0 0 auto; padding: 4px 10px; border-radius: 999px; background: var(--primary-light); color: var(--primary-dark); font-size: 12px; font-weight: 700; }
+.score-reference-card[open] summary::after { content: "收起"; }
+.reference-content { margin-top: 16px; }
 .reference-source { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
 .reference-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .reference-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 12px; text-align: center; }
@@ -216,8 +221,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
     </button>
   </div>
 
-  <div class="card score-reference-card">
-    <h2>26南宁中考等级分数线划分参考</h2>
+  <details class="card score-reference-card">
+    <summary><h2>26南宁中考等级分数线划分参考</h2></summary>
+    <div class="reference-content">
     <p class="reference-source">网络流传图片整理 · 含体育成绩 · 仅作民间参考</p>
     <div class="reference-table-wrap">
       <table class="reference-table">
@@ -239,7 +245,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJ
       </table>
     </div>
     <div class="reference-disclaimer"><strong>⚠️ 非官方数据声明：</strong>本表按网络流传图片转录，非官方等级分数线。</div>
-  </div>
+    </div>
+  </details>
 
   <div class="card result-hidden" id="resultCard">
     <h2>推荐高中</h2>
