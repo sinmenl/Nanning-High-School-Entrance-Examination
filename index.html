@@ -437,6 +437,24 @@ function getEffectiveRank(entry, meta) {
   return null;
 }
 
+function isErSanSchool(entry) {
+  return /^南宁市第二中学\(/.test(entry["学校"]) || /^南宁市第三中学\(/.test(entry["学校"]);
+}
+
+function isDemonstrationSchool(entry) {
+  var plan = findPlanForSchool(entry["学校"]);
+  return typeof entry["非定向最低排名"] === "number" ||
+    typeof entry["定向最低排名"] === "number" ||
+    (plan && String(plan["学校"]).indexOf("▲") !== -1);
+}
+
+function getSchoolOrder(item) {
+  var fixedIndex = getSchoolIndex(item.entry["学校"]);
+  if (fixedIndex !== 999) return fixedIndex;
+  var serial = Number(item.entry["序号"]);
+  return Number.isFinite(serial) ? 100 + serial : 9999;
+}
+
 function getMatchedSchools(meta, rankEnd, predicate, limit, useFallback) {
   var schools = CUTOFF_DATA
     .filter(predicate)
@@ -450,7 +468,7 @@ function getMatchedSchools(meta, rankEnd, predicate, limit, useFallback) {
       return { entry: s, effectiveRank: effectiveRank, meta: itemMeta };
     })
     .filter(function(item) { return typeof item.effectiveRank === "number"; })
-    .sort(function(a, b) { return a.effectiveRank - b.effectiveRank; });
+    .sort(function(a, b) { return getSchoolOrder(a) - getSchoolOrder(b); });
 
   var matches = schools
     .filter(function(item) { return item.effectiveRank >= rankEnd; })
@@ -469,29 +487,50 @@ function prioritizeSchoolType(items, preference, limit) {
   return items.slice().sort(function(a, b) {
     var aPreferred = isPrivateSchool(a.entry) === (preference === "private") ? 0 : 1;
     var bPreferred = isPrivateSchool(b.entry) === (preference === "private") ? 0 : 1;
-    return aPreferred - bPreferred || a.effectiveRank - b.effectiveRank;
+    return aPreferred - bPreferred || getSchoolOrder(a) - getSchoolOrder(b);
   }).slice(0, limit);
 }
 
+function getTierSchools(meta, rankEnd, preference, predicate, limit) {
+  return prioritizeSchoolType(getMatchedSchools(meta, rankEnd, predicate, 100, false), preference, limit);
+}
+
 function getRecommendations(studentType, meta, rankEnd, preference) {
-  if (studentType !== "nn-targeted") {
-    return prioritizeSchoolType(getMatchedSchools(meta, rankEnd, function() { return true; }, 100), preference, 4);
-  }
-
   var targetedMeta = { cutoffRank: "定向最低排名", cutoffScore: "定向最低等级", name: "地段生定向" };
-  var localMeta = { cutoffRank: "非定向最低排名", cutoffScore: "非定向最低等级", name: "非定向" };
-  var TARGETED_DEMO_REFERENCE_RANK = 14066;
-  var demoLimit = rankEnd > TARGETED_DEMO_REFERENCE_RANK ? 1 : 2;
-  var ordinaryLimit = 4 - demoLimit;
-  var demoSchools = getMatchedSchools(targetedMeta, rankEnd, function(s) {
-    return typeof s["定向最低排名"] === "number";
-  }, 100, false);
-  var ordinarySchools = getMatchedSchools(localMeta, rankEnd, function(s) {
-    return typeof s["定向最低排名"] !== "number";
-  }, 100);
+  var ordinaryMeta = studentType === "nn-targeted"
+    ? { cutoffRank: "非定向最低排名", cutoffScore: "非定向最低等级", name: "非定向" }
+    : meta;
+  var demonstrationMeta = studentType === "nn-targeted" ? targetedMeta : meta;
+  var ER_SAN_LIMIT = 3900;
+  var DEMONSTRATION_CAPACITY = 14066;
+  var DEMONSTRATION_TRANSITION_END = 17600;
+  var erSan = function(s) { return isErSanSchool(s); };
+  var demonstration = function(s) { return isDemonstrationSchool(s) && !isErSanSchool(s); };
+  var ordinary = function(s) { return !isDemonstrationSchool(s); };
 
-  return prioritizeSchoolType(demoSchools, preference, demoLimit)
-    .concat(prioritizeSchoolType(ordinarySchools, preference, ordinaryLimit)).slice(0, 4);
+  if (rankEnd <= 2000) {
+    return getTierSchools(demonstrationMeta, rankEnd, preference, erSan, 3);
+  }
+  if (rankEnd <= ER_SAN_LIMIT) {
+    var erSanSchools = getTierSchools(demonstrationMeta, rankEnd, preference, erSan, 3);
+    return erSanSchools.concat(getTierSchools(demonstrationMeta, rankEnd, preference, demonstration, 4 - erSanSchools.length));
+  }
+  if (rankEnd <= DEMONSTRATION_CAPACITY) {
+    return getTierSchools(demonstrationMeta, rankEnd, preference, demonstration, 4);
+  }
+  if (rankEnd <= DEMONSTRATION_TRANSITION_END) {
+    return getTierSchools(demonstrationMeta, rankEnd, preference, demonstration, 2)
+      .concat(getTierSchools(ordinaryMeta, rankEnd, preference, ordinary, 2));
+  }
+  return getTierSchools(ordinaryMeta, rankEnd, preference, ordinary, 4);
+}
+
+function getRecommendationRuleText(rankEnd) {
+  if (rankEnd <= 2000) return "排名前2,000名：仅参考南宁二、三中（含五象校区），不强制凑满4所。";
+  if (rankEnd <= 3900) return "排名2,001–3,900名：优先南宁二、三中（含五象校区），再补充其它示范性高中，不推荐普通高中。";
+  if (rankEnd <= 14066) return "排名3,901–14,066名：仅参考其它示范性高中，不推荐普通高中。";
+  if (rankEnd <= 17600) return "排名14,067–17,600名：优先示范性高中，并搭配普通高中参考。";
+  return "排名17,600名之后：参考普通高中。";
 }
 
 function isPrivateSchool(entry) {
@@ -626,12 +665,8 @@ function doMatch() {
       html += '<div class="empty-state">暂无推荐高中</div>';
     } else {
       html += '<h3 class="recommend-heading">参考2025实际录取线的学校建议</h3>';
-      if (studentType === "nn-targeted") {
-        html += '<div class="capacity-summary" style="margin:0 0 16px;">地段生会优先参考示范性高中的定向机会；若排名靠后，则只保留1所示范性参考，其余按指令非定向线补充普通高中。</div>';
-      } else {
-        var preferenceText = schoolPreference === "public" ? "已优先展示公办高中；推荐不足时会补充民办高中。" : schoolPreference === "private" ? "已优先展示民办高中；推荐不足时会补充公办高中。" : "以下学校按2025最低录取难度由高到低衔接到当前分数段，仅作参考匹配。";
-        html += '<div class="capacity-summary" style="margin:0 0 16px;">' + preferenceText + '</div>';
-      }
+      var preferenceText = schoolPreference === "public" ? "已优先展示公办高中；推荐不足时会补充民办高中。" : schoolPreference === "private" ? "已优先展示民办高中；推荐不足时会补充公办高中。" : "学校按对应梯队与2025录取线筛选，并按学校排名排序。";
+      html += '<div class="capacity-summary" style="margin:0 0 16px;">' + getRecommendationRuleText(rankEnd) + '<br>' + preferenceText + '</div>';
       html += '<div class="result-list">';
       recommendations.forEach(function(item, index) {
         var e = item.entry;
